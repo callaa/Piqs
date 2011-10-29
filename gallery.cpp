@@ -2,6 +2,8 @@
 #include <QFileInfoList>
 #include <QDebug>
 #include <QImageReader>
+#include <QSqlQuery>
+#include <QVariant>
 
 #include "gallery.h"
 #include "database.h"
@@ -9,15 +11,15 @@
 const QString Gallery::METADIR = ".piqs";
 
 Gallery::Gallery(const QDir& root, QObject *parent)
-	: QObject(parent), _root(findRootGallery(root))
+	: QObject(parent), m_root(findRootGallery(root))
 {
 	// TODO error handling
-	if(!_root.exists(METADIR))
-		_root.mkdir(METADIR);
-	_metadir = _root;
-	_metadir.cd(METADIR);
+	if(!m_root.exists(METADIR))
+		m_root.mkdir(METADIR);
+	m_metadir = m_root;
+	m_metadir.cd(METADIR);
 
-	_database = new Database(_metadir, this);
+	m_database = new Database(m_metadir, this);
 }
 
 /**
@@ -41,12 +43,22 @@ QDir Gallery::findRootGallery(QDir dir)
 
 Gallery::~Gallery()
 {
+	// Explicitly delete the database here to release the associated connection.
+	QString dbname = m_database->name();
+	delete m_database;
+	QSqlDatabase::removeDatabase(dbname);
+}
+
+int Gallery::totalCount() const
+{
+	QSqlQuery q("SELECT COUNT(*) FROM picture", m_database->get());
+	if(!q.next())
+		return -1;
+	return q.value(0).toInt();
 }
 
 void Gallery::rescan()
 {
-	_pictures.clear();
-
 	// Get a list of image formats supported by Qt
 	QStringList filefilter;
 	foreach(QByteArray format, QImageReader::supportedImageFormats()) {
@@ -55,24 +67,29 @@ void Gallery::rescan()
 			filefilter << fmt;
 	}
 
-	// Recursively scan from gallery root directory up
-	rescan(filefilter, QString(), _root);
+	QSqlQuery q(m_database->get());
+	q.prepare("INSERT OR IGNORE INTO picture (filename, hidden, title, tags) VALUES (?, 0, \"\", \"\")");
 
-	_database->syncPictures(_pictures);
+	// Recursively scan from gallery root directory up
+	rescan(filefilter, QString(), m_root, q);
 }
 
-void Gallery::rescan(const QStringList& filefilter, const QString& prefix, const QDir& root)
+void Gallery::rescan(const QStringList& filefilter, const QString& prefix, const QDir& root, QSqlQuery& query)
 {
 	// Recursively scan subdirectories
 	QStringList dirs = root.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
 	foreach(const QString& name, dirs) {
-		rescan(filefilter, prefix + name + "/", QDir(root.absoluteFilePath(name)));
+		rescan(filefilter, prefix + name + "/", QDir(root.absoluteFilePath(name)), query);
 	}
 
 	// Scan supported images
 	QFileInfoList files = root.entryInfoList(filefilter, QDir::Files | QDir::Readable);
 	foreach(const QFileInfo& file, files) {
-		_pictures.append(Picture(this, prefix + file.fileName(), file));
+		QString path = prefix + file.fileName();
+		query.bindValue(0, path);
+		qDebug() << "insert" << path;
+		if(!query.exec())
+			qDebug() << "Couldn't insert file";
 	}
 
 }

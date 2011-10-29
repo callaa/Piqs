@@ -7,26 +7,29 @@
 #include <QMutex>
 
 class Gallery;
+class Picture;
 
+//! Memory cache and thumbnail generation
 class IconCache
 {
 public:
 	static IconCache& getInstance();
 
 	/**
-	 * Get an icon for the image from the gallery.
-	 * If an icon is not available right away, a placeholder
-	 * icon will be returned and icon loading will be queued in the
-	 * background.
-	 * @param gallery the gallery from which to get the icon
-	 * @param image file name of image relative to gallery root
-	 * @return icon
+	 Get an icon for the image from the gallery.
+	 If an icon is not available right away, a placeholder
+	 icon will be returned and icon loading will be queued in the
+	 background.
+	 @param gallery the gallery from which to get the icon
+	 @param picture the picture whose thumbnail to get
+	 @return icon
 	 */
-	QPixmap get(const Gallery* gallery, const QString& image);
+	QPixmap get(const Gallery* gallery, const Picture& picture);
 
 private:
     IconCache();
 	IconCache(const IconCache& ic);
+	IconCache& operator=(const IconCache& ic);
 
 	//! Generate a thumbnail image and save it to the file system
 	void cacheImage(const Gallery *gallery, const QString &image, const QString& cachefile);

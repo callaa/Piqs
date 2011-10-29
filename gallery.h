@@ -5,8 +5,10 @@
 #include <QList>
 
 #include "picture.h"
+#include "database.h"
 
 class Database;
+class QSqlQuery;
 
 class Gallery : public QObject
 {
@@ -34,31 +36,30 @@ public:
 	 */
 	void rescan();
 
+	//! Get the total number of images in the gallery
+	int totalCount() const;
+
 	//! Get the gallery root directory
 	/**
 	  * Every picture in the gallery is found either in this directory
 	  * or one of its subdirectories.
 	  */
-	const QDir& root() const { return _root; }
+	const QDir& root() const { return m_root; }
 
 	//! Get the gallery metadata directory
-	const QDir& metadir() const { return _metadir; }
+	const QDir& metadir() const { return m_metadir; }
 
-	//! Get the number of images in the gallery
-	int imageCount() const { return _pictures.size(); }
-
-	//! Get a picture from the gallery
-	const Picture& picture(int index) const { return _pictures.at(index); }
+	//! Get the database for this gallery
+	const Database* database() const { return m_database; }
 
 private:
 	static QDir findRootGallery(QDir dir);
 
-	void rescan(const QStringList& filefilter, const QString& prefix, const QDir& root);
+	void rescan(const QStringList& filefilter, const QString& prefix, const QDir& root, QSqlQuery& query);
 
-	const QDir _root;
-	QDir _metadir;
-	QList<Picture> _pictures;
-	Database *_database;
+	const QDir m_root;
+	QDir m_metadir;
+	Database *m_database;
 };
 
 #endif // GALLERY_H

@@ -1,22 +1,27 @@
 #include <QtConcurrentRun>
+
 #include "iconcache.h"
 #include "gallery.h"
+#include "picture.h"
 
 IconCache::IconCache()
-	: _placeholder(QPixmap(ICON_SIZE, ICON_SIZE))
+	: _cache(255), _placeholder(QPixmap(ICON_SIZE, ICON_SIZE))
 {
 	_placeholder.fill(Qt::gray);
 }
 
 IconCache& IconCache::getInstance()
 {
-	static IconCache singleton;
-	return singleton;
+	static IconCache *singleton = new IconCache();
+	return *singleton;
 }
 
-QPixmap IconCache::get(const Gallery *gallery, const QString &image)
+QPixmap IconCache::get(const Gallery *gallery, const Picture &picture)
 {
-	const QString cachefile = gallery->metadir().absoluteFilePath(image) + ".jpg";
+	// The thumbnail files are distributed into subdirectories
+	const QString cachefile = gallery->metadir().absoluteFilePath(
+				QString::number(picture.id()/10000) + QDir::separator() + QString::number(picture.id()/100) + QDir::separator() +
+				QString::number(picture.id()) + ".jpg");
 
 	QPixmap *icon = _cache[cachefile];
 
@@ -39,7 +44,7 @@ QPixmap IconCache::get(const Gallery *gallery, const QString &image)
 				_loading.insert(cachefile);
 				_lock.unlock();
 
-				QtConcurrent::run(this, &IconCache::cacheImage, gallery, image, cachefile);
+				QtConcurrent::run(this, &IconCache::cacheImage, gallery, picture.relativeName(), cachefile);
 			} else {
 				_lock.unlock();;
 			}
@@ -53,7 +58,7 @@ void IconCache::cacheImage(const Gallery *gallery, const QString &image, const Q
 {
 	QString src = gallery->root().absoluteFilePath(image);
 	QImage icon = QImage(src).scaled(ICON_SIZE, ICON_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-	gallery->metadir().mkpath(QFileInfo(image).dir().path());
+	gallery->metadir().mkpath(QFileInfo(cachefile).dir().path());
 
 	icon.save(cachefile);
 	_lock.lock();
