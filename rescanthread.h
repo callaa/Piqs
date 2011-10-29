@@ -27,6 +27,7 @@ private:
 	const Gallery *m_gallery;
 	int m_count;
 	bool m_abortflag;
+	qint64 m_time;
 
 };
 

@@ -36,6 +36,9 @@ public slots:
 	void zoomfit(bool checked);
 	void zoomorig();
 
+	//! Save changes to tags
+	void saveTags();
+
 signals:
 	//! User wants to get out of this view
 	void exitView();
@@ -45,6 +48,9 @@ signals:
 
 	//! Request for the previous picture in the browser to be shown
 	void requestPrev();
+
+	//! Currently open image has been changed and should be removed from the cache
+	void changed();
 
 protected:
 	void keyPressEvent(QKeyEvent *e);

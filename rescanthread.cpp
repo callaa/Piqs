@@ -3,6 +3,7 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>
+#include <QDateTime>
 
 #include "rescanthread.h"
 
@@ -10,7 +11,7 @@
 #include "database.h"
 
 RescanThread::RescanThread(const Gallery *gallery, QObject *parent) :
-	QThread(parent), m_gallery(gallery), m_count(0), m_abortflag(false)
+	QThread(parent), m_gallery(gallery), m_count(0), m_abortflag(false), m_time(0)
 {
 
 }
@@ -35,10 +36,12 @@ void RescanThread::run() {
 		}
 
 		QSqlQuery q(db);
-		q.prepare("INSERT OR IGNORE INTO picture (filename, hidden, title, tags) VALUES (?, 0, \"\", \"\")");
+		q.prepare("INSERT OR IGNORE INTO picture (filename, hidden, title, tags, rotation) VALUES (?, 0, \"\", \"\", 0)");
 
 		// Depth first search of all subdirectories
 		rescan(filefilter, QString(), m_gallery->root(), q);
+
+		emit filesAdded(m_count);
 	}
 
 	QSqlDatabase::removeDatabase(dbname);
@@ -59,12 +62,19 @@ void RescanThread::rescan(const QStringList& filefilter, const QString& prefix, 
 	foreach(const QFileInfo& file, files) {
 		if(m_abortflag)
 			return;
+
 		QString path = prefix + file.fileName();
 		query.bindValue(0, path);
 		if(!query.exec())
 			qDebug() << "Couldn't insert file:" << query.lastError().text();
 
-		emit filesAdded(++m_count);
+		// Limit the file count update rate
+		++m_count;
+		qint64 time = QDateTime::currentMSecsSinceEpoch();
+		if(time - 1000 > m_time) {
+			emit filesAdded(m_count);
+			m_time = time;
+		}
 	}
 
 }

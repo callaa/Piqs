@@ -7,6 +7,8 @@
 
 #include "gallery.h"
 #include "picture.h"
+#include "tagset.h"
+#include "tagvalidator.h"
 
 ImageView::ImageView(const Gallery *gallery, QWidget *parent) :
     QWidget(parent),
@@ -17,6 +19,8 @@ ImageView::ImageView(const Gallery *gallery, QWidget *parent) :
 
 	m_scene = new QGraphicsScene();
 	m_ui->view->setScene(m_scene);
+
+	m_ui->tagedit->setValidator(new TagValidator());
 
 	// Set action button icons
 	m_ui->fitbutton->setIcon(QIcon::fromTheme("zoom-fit-best"));
@@ -33,6 +37,8 @@ ImageView::ImageView(const Gallery *gallery, QWidget *parent) :
 	connect(m_ui->zoomoutbutton, SIGNAL(clicked()), this, SLOT(zoomout()));
 	connect(m_ui->nextbutton, SIGNAL(clicked()), this, SIGNAL(requestNext()));
 	connect(m_ui->prevbutton, SIGNAL(clicked()), this, SIGNAL(requestPrev()));
+
+	connect(m_ui->tagedit, SIGNAL(returnPressed()), this, SLOT(saveTags()));
 }
 
 ImageView::~ImageView()
@@ -55,6 +61,16 @@ void ImageView::setPicture(const Picture &picture)
 	m_scene->setSceneRect(item->boundingRect());
 	if(isAutofit())
 		scaleToFit();
+
+	m_ui->tagedit->setText(picture.tagString());
+	m_ui->alltags->setText(TagSet::getForPicture(m_gallery->database(), picture.id()).toString());
+}
+
+void ImageView::saveTags()
+{
+	TagSet tagset = m_picture.saveTags(m_gallery->database(), m_ui->tagedit->text());
+	m_ui->alltags->setText(tagset.toString());
+	emit changed();
 }
 
 void ImageView::keyPressEvent(QKeyEvent *e)

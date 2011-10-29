@@ -35,8 +35,17 @@ signals:
 	void pictureSelected(const Picture& picture);
 
 public slots:
+	//! Emit pictureSelected for the picture at index
 	void openPicture(const QModelIndex& index);
+
+	//! Invalidate cache and refresh view
 	void refreshQuery();
+
+	//! Perform a new query using the search string in the query box
+	void updateQuery();
+
+	//! Uncache the currently selected picture (e.g. because metadata has been changed)
+	void uncacheSelected();
 
 private:
 	Gallery *m_gallery;

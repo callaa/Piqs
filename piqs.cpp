@@ -47,6 +47,7 @@ Piqs::Piqs(QWidget *parent)
 	connect(m_viewer, SIGNAL(exitView()), this, SLOT(showBrowser()));
 	connect(m_viewer, SIGNAL(requestNext()), this, SLOT(showNextPicture()));
 	connect(m_viewer, SIGNAL(requestPrev()), this, SLOT(showPreviousPicture()));
+	connect(m_viewer, SIGNAL(changed()), m_browser, SLOT(uncacheSelected()));
 
 	restoreGeometry(QByteArray::fromBase64(m_gallery->database()->getSetting("window.geometry").toByteArray()));
 	m_viewer->setAutofit(m_gallery->database()->getSetting("viewer.autofit").toBool());

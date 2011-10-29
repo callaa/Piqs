@@ -20,7 +20,11 @@ SOURCES += main.cpp\
     browserwidget.cpp \
     imageview.cpp \
     rescanthread.cpp \
-    rescandialog.cpp
+    rescandialog.cpp \
+    tagset.cpp \
+    util.cpp \
+    tagvalidator.cpp \
+    tagquery.cpp
 
 HEADERS  += piqs.h \
     thumbnailmodel.h \
@@ -31,7 +35,11 @@ HEADERS  += piqs.h \
     browserwidget.h \
     imageview.h \
     rescanthread.h \
-    rescandialog.h
+    rescandialog.h \
+    tagset.h \
+    util.h \
+    tagvalidator.h \
+    tagquery.h
 
 FORMS += \
     imageview.ui \

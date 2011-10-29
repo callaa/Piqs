@@ -1,4 +1,5 @@
 #include <QtConcurrentRun>
+#include <QPainter>
 
 #include "iconcache.h"
 #include "gallery.h"
@@ -57,7 +58,17 @@ QPixmap IconCache::get(const Gallery *gallery, const Picture &picture)
 void IconCache::cacheImage(const Gallery *gallery, const QString &image, const QString& cachefile)
 {
 	QString src = gallery->root().absoluteFilePath(image);
-	QImage icon = QImage(src).scaled(ICON_SIZE, ICON_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+	QImage img(src);
+	QImage icon;
+	if(icon.width() > ICON_SIZE || icon.height() > ICON_SIZE) {
+		icon = img.scaled(ICON_SIZE, ICON_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+	} else {
+		icon = QImage(ICON_SIZE, ICON_SIZE, QImage::Format_RGB32);
+		QPainter painter(&icon);
+		painter.fillRect(0, 0, ICON_SIZE, ICON_SIZE, Qt::white);
+		painter.drawImage(ICON_SIZE/2 - img.width()/2, ICON_SIZE/2 - img.height()/2, img);
+	}
+
 	gallery->metadir().mkpath(QFileInfo(cachefile).dir().path());
 
 	icon.save(cachefile);

@@ -8,6 +8,7 @@
 #include "picture.h"
 
 class Gallery;
+class TagQuery;
 
 //! Item model for thumbnails
 /**
@@ -17,6 +18,9 @@ class ThumbnailModel : public QAbstractListModel
 {
     Q_OBJECT
 public:
+	//! Special query modes
+	enum SpecialQuery { QUERY_ALL, QUERY_UNTAGGED, QUERY_NEW, QUERY_HIDDEN };
+
 	ThumbnailModel(const Gallery *gallery, QObject *parent = 0);
 
 	int rowCount(const QModelIndex &parent) const;
@@ -26,13 +30,17 @@ public:
 	//! Get the picture at the given index
 	const Picture *pictureAt(int index) const;
 
+	//! Remove the picture at index from the cache
+	void uncache(int index);
+
+	//! Set the query string and filter the view
+	void setQuery(SpecialQuery query);
+
+	void setQuery(const TagQuery& query);
+
 signals:
 
 public slots:
-
-	//! Set the query string and filter the view
-	void setQuery(const QString& query);
-
 	void refreshQuery();
 
 private:

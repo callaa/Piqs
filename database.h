@@ -25,6 +25,12 @@ public:
 	//! Get the name of the database connection
 	const QString& name() const { return m_dbname; }
 
+	//! Get the ID for the given tag, creating it if it doesn't exist already
+	int getOrCreateTag(const QString& name) const;
+
+	//! Get the ID for the given tag
+	int getTag(const QString& name) const;
+
 	//! Save a configuration value
 	void saveSetting(const QString& key, const QVariant& value) const;
 

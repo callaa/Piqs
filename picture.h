@@ -4,13 +4,16 @@
 #include <QString>
 #include <QMetaType>
 
+#include "tagset.h"
+
 class Gallery;
+class Database;
 
 class Picture
 {
 public:
 	Picture();
-	Picture(int id, const QString& filename, bool hidden, const QString& title, const QString& tags);
+	Picture(int id, const QString& filename, bool hidden, const QString& title, const QString& tags, int rotation);
 
 	//! Get the internal ID of this picture
 	int id() const { return m_id; }
@@ -30,12 +33,19 @@ public:
 	//! Get the tag string (user inputted tags)
 	QString tagString() const { return m_tags; }
 
+	//! Get the picture rotation angle in degrees
+	int rotation() const { return m_rotation; }
+
+	//! Change picture tag string and save changes to the database.
+	TagSet saveTags(const Database *db, const QString& tags);
+
 private:
 	int m_id;
 	QString m_relativename;
 	bool m_hidden;
 	QString m_title;
 	QString m_tags;
+	int m_rotation;
 };
 
 Q_DECLARE_METATYPE(Picture)
