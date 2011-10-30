@@ -24,7 +24,10 @@ public:
 
 	virtual void init(const Database *database) = 0;
 
-	virtual void gatherTagIds(QSet<int>& list) = 0;
+	virtual void gatherTagIds(QSet<int>& list) const = 0;
+
+	//! Check if this query contains any tag set operators
+	virtual bool hasSets() const { return false; }
 
 	/**
 	  \param tags the tag set to match again
@@ -32,6 +35,14 @@ public:
 	  \param limitmask bitmask of sets that have been matched already
 	  */
 	virtual bool match(const TagIdSet &tags, int limitset, long &limitmask) const = 0;
+
+	/**
+	  A matcher that records details about how the query matches
+	  \param tags the tag set to match against
+	  \param limitmask if >=0, math only against the tags in that set.
+	  \param results query results are stored here
+	  */
+	virtual bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const = 0;
 };
 
 class TagQueryBinaryNode : public TagQueryNode
@@ -53,7 +64,7 @@ public:
 		m_right->init(database);
 	}
 
-	void gatherTagIds(QSet<int>& list) {
+	void gatherTagIds(QSet<int>& list) const {
 		m_left->gatherTagIds(list);
 		m_right->gatherTagIds(list);
 	}
@@ -64,6 +75,10 @@ public:
 
 	void setRight(TagQueryNode *node) {
 		m_right = node;
+	}
+
+	bool hasSets() const {
+		return m_left->hasSets() || m_right->hasSets();
 	}
 
 protected:
@@ -84,11 +99,16 @@ public:
 		m_node->init(database);
 	}
 
-	void gatherTagIds(QSet<int>& list) {
+	void gatherTagIds(QSet<int>& list) const {
 		m_node->gatherTagIds(list);
 	}
 
 	void setNode(TagQueryNode *node) { m_node = node; }
+
+	bool hasSets() const {
+		return m_node->hasSets();
+	}
+
 protected:
 	TagQueryNode *m_node;
 };
@@ -109,6 +129,11 @@ public:
 	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
 	{
 		return m_left->match(tags, limitset, limitmask) && m_right->match(tags, limitset, limitmask);
+	}
+
+	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
+	{
+		return m_left->match(tags, limitset, results) && m_right->match(tags, limitset, results);
 	}
 };
 
@@ -131,6 +156,11 @@ public:
 	{
 		return m_left->match(tags, limitset, limitmask) || m_right->match(tags, limitset, limitmask);
 	}
+
+	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
+	{
+		return m_left->match(tags, limitset, results) || m_right->match(tags, limitset, results);
+	}
 };
 
 class TagQueryNotNode : public TagQueryUnaryNode
@@ -148,6 +178,11 @@ public:
 	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
 	{
 		return !m_node->match(tags, limitset, limitmask);
+	}
+
+	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
+	{
+		return !m_node->match(tags, limitset, results);
 	}
 };
 
@@ -175,8 +210,29 @@ public:
 		}
 		return false;
 	}
+
+	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
+	{
+		Q_UNUSED(limitset); // Although the grammar allows nested tag sets, other limitations prevent their use.
+		for(int i=1;i<=tags.sets();++i) {
+			if(!results.tagsets.contains(i)) {
+				// TODO ability to match any set
+				bool m = m_node->match(tags, i, results);
+				if(m) {
+					results.tagsets.append(i);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	bool hasSets() const {
+		return true;
+	}
 };
 
+// Tag node
 class TagQueryLeafNode : public TagQueryNode
 {
 public:
@@ -191,7 +247,7 @@ public:
 			throw ParseException("No such tag: " + m_value);
 	}
 
-	void gatherTagIds(QSet<int>& list) {
+	void gatherTagIds(QSet<int>& list) const {
 		list.insert(m_id);
 	}
 
@@ -199,7 +255,7 @@ public:
 	{
 		Q_UNUSED(limitmask);
 
-		if(limitset==0) {
+		if(limitset<0) {
 			for(int i=0;i<=tags.sets();++i)
 				if(tags.tags(i).contains(m_id))
 					return true;
@@ -207,6 +263,13 @@ public:
 		} else {
 			return tags.tags(limitset).contains(m_id);
 		}
+	}
+
+	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
+	{
+		Q_UNUSED(results);
+		long unused=0;
+		return match(tags, limitset, unused);
 	}
 
 	void debug(QDebug &dbg) const
@@ -363,6 +426,11 @@ TagQuery::TagQuery(const QString& query)
 
 }
 
+TagQuery::TagQuery()
+	: m_p(new TagQueryPrivate())
+{
+}
+
 TagQuery::TagQuery(const TagQuery &tq)
 	: m_p(new TagQueryPrivate(*tq.m_p))
 {
@@ -412,13 +480,53 @@ QStringList TagQuery::mentionedTagIds() const
 	return idlist;
 }
 
+/**
+  This is used for query filtering
+  \param tags the tag set to match against
+  \return true if query matches
+  */
 bool TagQuery::match(const TagIdSet &tags) const
 {
 	if(m_p->node!=0) {
 		long limitmask=0;
-		return m_p->node->match(tags, 0, limitmask);
+		return m_p->node->match(tags, -1, limitmask);
 	}
 	return false;
+}
+
+/**
+  This is used for tag analysis in tag induction.
+  \param tags the tag set to match against
+  \return detailed query results
+  */
+TagMatchResults TagQuery::query(const TagIdSet &tags) const
+{
+	TagMatchResults results;
+	if(m_p->node!=0) {
+		if(m_p->node->hasSets()) {
+			// If query has tag sets, match the usual way
+			results.matchsets = true;
+			if(m_p->node->match(tags, -1, results))
+				results.matched = true;
+
+		} else {
+			// If it is flat, try querying the tag sets separately first
+			for(int i=0;i<=tags.sets();++i) {
+				if(m_p->node->match(tags, i, results)) {
+					results.matched = true;
+					results.tagsets.append(i);
+				}
+			}
+
+			// If no matches have been found so far, try querying
+			// without set borders.
+			if(results.matched==false && tags.sets()>0) {
+				if(m_p->node->match(tags, -1, results))
+					results.matched = true;
+			}
+		}
+	}
+	return results;
 }
 
 QDebug operator<<(QDebug dbg, const TagQuery &q)
@@ -430,4 +538,21 @@ QDebug operator<<(QDebug dbg, const TagQuery &q)
 		q.m_p->node->debug(dbg.space());
 
 	return dbg.space();
+}
+
+QDebug operator<<(QDebug dbg, const TagMatchResults &r)
+{
+	QDebug& d = dbg.space();
+	d << "RESULTS:";
+	if(r.matched) {
+		d << "matched=true,";
+		if(r.matchsets)
+			d << "tagset match order:" << r.tagsets;
+		else
+			d << "matching tagsets:" << r.tagsets;
+	} else {
+		d << "not matched";
+	}
+
+	return d;
 }

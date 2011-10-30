@@ -37,7 +37,7 @@ public:
 	int rotation() const { return m_rotation; }
 
 	//! Change picture tag string and save changes to the database.
-	TagSet saveTags(const Database *db, const QString& tags);
+	void saveTags(const Database *db, const QString& tags);
 
 private:
 	int m_id;

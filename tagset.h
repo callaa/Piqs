@@ -34,9 +34,6 @@ public:
 	//! Get the tag set in the same format as accepted by parse(QString)
 	QString toString() const;
 
-	//! Save the tags for a picture
-	void save(const Database *db, int picture);
-
 private:
 	QList<QStringList> m_sets;
 };
@@ -51,6 +48,9 @@ class TagIdSet
 public:
 	TagIdSet();
 
+	//! Construct from a tag set
+	TagIdSet(const TagSet &tagset, const Database *db, int pictureid=-1);
+
 	//! Get the tagset for a picture from an open result set
 	static TagIdSet getFromResults(QSqlQuery &query);
 
@@ -61,8 +61,17 @@ public:
 	  */
 	int sets() const { return m_sets.size()-1; }
 
+	//! Get the total number of tags in the set
+	int totalCount() const;
+
 	//! Get the tags in the given set
 	const TagIdVector& tags(int index) const { return m_sets.at(index); }
+
+	//! Insert tags to the given set, ignoring duplicates
+	void insertTags(const TagIdVector& tags, int set);
+
+	//! Insert a new tag set
+	void insertSet(const TagIdVector& tags);
 
 	/**
 	  \brief Get the ID of the picture to which these tags belong to
@@ -71,9 +80,12 @@ public:
 	  */
 	int pictureId() const { return m_picid; }
 
+	//! Save the tags
+	void save(const Database *db);
+
 private:
-	QVector<TagIdVector> m_sets;
 	int m_picid;
+	QVector<TagIdVector> m_sets;
 };
 
 #endif // TAGSET_H

@@ -12,6 +12,8 @@ TagValidator::TagValidator(QObject *parent) :
 
 QValidator::State TagValidator::validate(QString& input, int &pos) const
 {
+	Q_UNUSED(pos);
+
 	QString str = input.trimmed();
 
 	if(str.length()==0)

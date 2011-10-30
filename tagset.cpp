@@ -74,36 +74,6 @@ QString TagSet::toString() const
 	return str;
 }
 
-void TagSet::save(const Database *db, int picture)
-{
-	// Get tag IDs
-	QVector<int> tags[m_sets.length()];
-	for(int i=0;i<m_sets.length();++i) {
-		foreach(const QString& tag, m_sets.at(i)) {
-			tags[i].append(db->getOrCreateTag(tag));
-		}
-	}
-
-	// Clear out old tag associations
-	db->get().transaction();
-	QSqlQuery q(db->get());
-	q.exec("DELETE FROM tagmap WHERE picid=" + QString::number(picture));
-
-	// Insert new ones
-	q.prepare("INSERT INTO tagmap (picid, tagid, tagset) VALUES (?, ?, ?)");
-	q.bindValue(0, picture);
-
-	for(int set=0;set<m_sets.length();++set) {
-		q.bindValue(2, set);
-		foreach(int tag, tags[set]) {
-			q.bindValue(1, tag);
-			q.exec();
-		}
-	}
-
-	db->get().commit();
-}
-
 TagSet TagSet::getForPicture(const Database *db, int picid)
 {
 	QSqlQuery q(db->get());
@@ -132,6 +102,18 @@ TagSet TagSet::getForPicture(const Database *db, int picid)
 TagIdSet::TagIdSet()
 	: m_picid(-1)
 {
+}
+
+TagIdSet::TagIdSet(const TagSet &tagset, const Database *db, int pictureid)
+	: m_picid(pictureid), m_sets(tagset.sets()+1)
+{
+	for(int i=0;i<=tagset.sets();++i) {
+		foreach(const QString& tag, tagset.tags(i)) {
+			int id = db->getOrCreateTag(tag);
+			if(!m_sets[i].contains(id))
+				m_sets[i].append(id);
+		}
+	}
 }
 
 /**
@@ -165,4 +147,53 @@ TagIdSet TagIdSet::getFromResults(QSqlQuery &query)
 	}
 
 	return tags;
+}
+
+int TagIdSet::totalCount() const
+{
+	int count=0;
+	foreach(const TagIdVector& tags, m_sets) {
+		count += tags.count();
+	}
+	return count;
+}
+
+void TagIdSet::insertTags(const TagIdVector& tags, int set)
+{
+	foreach(int tag, tags) {
+		if(!m_sets[set].contains(tag))
+			m_sets[set].append(tag);
+	}
+}
+
+void TagIdSet::insertSet(const TagIdVector& tags)
+{
+	m_sets.append(tags);
+}
+
+void TagIdSet::save(const Database *db)
+{
+	if(m_picid<=0) {
+		qDebug() << "ERROR: trying to save TagIdSet with invalid picture id";
+		return;
+	}
+
+	// Clear out old tag associations
+	db->get().transaction();
+	QSqlQuery q(db->get());
+	q.exec("DELETE FROM tagmap WHERE picid=" + QString::number(m_picid));
+
+	// Insert new ones
+	q.prepare("INSERT INTO tagmap (picid, tagid, tagset) VALUES (?, ?, ?)");
+	q.bindValue(0, m_picid);
+
+	for(int set=0;set<m_sets.count();++set) {
+		q.bindValue(2, set);
+		foreach(int tag, m_sets[set]) {
+			q.bindValue(1, tag);
+			q.exec();
+		}
+	}
+
+	db->get().commit();
 }

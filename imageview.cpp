@@ -68,8 +68,8 @@ void ImageView::setPicture(const Picture &picture)
 
 void ImageView::saveTags()
 {
-	TagSet tagset = m_picture.saveTags(m_gallery->database(), m_ui->tagedit->text());
-	m_ui->alltags->setText(tagset.toString());
+	m_picture.saveTags(m_gallery->database(), m_ui->tagedit->text());
+	m_ui->alltags->setText(TagSet::getForPicture(m_gallery->database(), m_picture.id()).toString());
 	emit changed();
 }
 

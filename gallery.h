@@ -30,12 +30,6 @@ public:
 
 	~Gallery();
 
-	//! Rescan the gallery directory tree for image files.
-	/**
-	 * Any images not already in the database will be added.
-	 */
-	void rescan();
-
 	//! Get the total number of images in the gallery
 	int totalCount() const;
 
@@ -54,8 +48,6 @@ public:
 
 private:
 	static QDir findRootGallery(QDir dir);
-
-	void rescan(const QStringList& filefilter, const QString& prefix, const QDir& root, QSqlQuery& query);
 
 	const QDir m_root;
 	QDir m_metadir;

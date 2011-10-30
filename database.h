@@ -1,8 +1,8 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-#include <QObject>
 #include <QSqlDatabase>
+#include <QHash>
 
 class QDir;
 class Picture;
@@ -36,6 +36,9 @@ public:
 
 	//! Get a configuration value
 	QVariant getSetting(const QString& key) const;
+
+	//! (Re)create the tag index tables
+	void createTagIndexTables(bool dropfirst=false) const;
 
 signals:
 

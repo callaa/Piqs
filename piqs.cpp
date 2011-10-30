@@ -11,6 +11,7 @@
 #include "browserwidget.h"
 #include "imageview.h"
 #include "picture.h"
+#include "tagdialog.h"
 
 #include "rescandialog.h"
 
@@ -23,7 +24,9 @@ Piqs::Piqs(QWidget *parent)
 	// Create menus
 	QMenu *filemenu = menuBar()->addMenu(tr("&Gallery"));
 	filemenu->addAction(m_act_open);
+	filemenu->addSeparator();
 	filemenu->addAction(m_act_rescan);
+	filemenu->addAction(m_act_tagrules);
 	filemenu->addSeparator();
 	filemenu->addAction(m_act_exit);
 
@@ -68,17 +71,27 @@ void Piqs::rescan()
 	QTimer::singleShot(0, rescan, SLOT(rescan()));
 }
 
+void Piqs::showTagrules()
+{
+	TagDialog *dialog = new TagDialog(m_gallery->database(), this);
+	dialog->setAttribute(Qt::WA_DeleteOnClose, true);
+	dialog->setModal(true);
+	dialog->show();
+}
+
 void Piqs::initActions()
 {
 	m_act_open = makeAction(tr("&Open"), "document-open", QKeySequence::Open);
 	m_act_open->setDisabled(true); // TODO
 	m_act_rescan = makeAction(tr("Rescan"), "edit-redo", QKeySequence());
+	m_act_tagrules = makeAction(tr("&Tag rules"), "configure", QKeySequence());
 	m_act_exit = makeAction(tr("E&xit"), "application-exit", QKeySequence::Quit);
 
 	m_act_exit->setMenuRole(QAction::QuitRole);
 
 	connect(m_act_rescan, SIGNAL(triggered()), this, SLOT(rescan()));
 	connect(m_act_exit, SIGNAL(triggered()), this, SLOT(close()));
+	connect(m_act_tagrules, SIGNAL(triggered()), this, SLOT(showTagrules()));
 }
 
 QAction *Piqs::makeAction(const QString& title, const char *icon, const QKeySequence& shortcut)

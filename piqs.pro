@@ -24,7 +24,9 @@ SOURCES += main.cpp\
     tagset.cpp \
     util.cpp \
     tagvalidator.cpp \
-    tagquery.cpp
+    tagquery.cpp \
+    tagdialog.cpp \
+    tagimplications.cpp
 
 HEADERS  += piqs.h \
     thumbnailmodel.h \
@@ -39,8 +41,11 @@ HEADERS  += piqs.h \
     tagset.h \
     util.h \
     tagvalidator.h \
-    tagquery.h
+    tagquery.h \
+    tagdialog.h \
+    tagimplications.h
 
 FORMS += \
     imageview.ui \
-    rescandialog.ui
+    rescandialog.ui \
+    tagdialog.ui

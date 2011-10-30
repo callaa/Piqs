@@ -1,3 +1,5 @@
+#include <QRegExp>
+
 #include "util.h"
 
 /**
@@ -50,4 +52,10 @@ QStringList Util::tokenize(const QString& string, const QString& tokenstring, bo
 	}
 
 	return tokens;
+}
+
+QString Util::cleanTagName(const QString& name)
+{
+	static QRegExp badchars("[,|()[\\]!]");
+	return name.trimmed().toLower().replace(badchars, "");
 }

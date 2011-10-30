@@ -7,6 +7,7 @@
 
 #include "database.h"
 #include "picture.h"
+#include "util.h"
 
 int Database::dbindex = 0;
 
@@ -38,28 +39,26 @@ Database::Database(const QDir& metadir, QObject *parent) :
 				   ")");
 		}
 
-		// Tags
-		if(!tables.contains("tag")) {
-			qDebug() << "Tag table does not exist. Creating...";
-			QSqlQuery q(m_db);
-			q.exec("CREATE TABLE tag ("
-				   "tagid INTEGER PRIMARY KEY NOT NULL,"
-				   "tag TEXT UNIQUE NOT NULL"
-				   ")");
+		createTagIndexTables();
 
+		// Tag aliases
+		if(!tables.contains("tagalias")) {
+			qDebug() << "Tag alias table does not exist. Creating...";
+			QSqlQuery q(m_db);
+			q.exec("CREATE TABLE tagalias ("
+				   "alias TEXT PRIMARY KEY NOT NULL,"
+				   "tag TEXT NOT NULL"
+				   ")");
 		}
 
-		// Tag <-> picture associations
-		if(!tables.contains("tagmap")) {
-			qDebug() << "Tag association map does not exist. Creating...";
+		// Tag implication rules
+		if(!tables.contains("tagrule")) {
+			qDebug() << "Tag rule table does not exist. Creating...";
 			QSqlQuery q(m_db);
-			q.exec("CREATE TABLE tagmap ("
-				   "picid INTEGER NOT NULL,"
-				   "tagid INTEGER NOT NULL,"
-				   "tagset INTEGER NOT NULL,"
-				   "PRIMARY KEY (picid, tagid, tagset),"
-				   "FOREIGN KEY (picid) REFERENCES picture ON DELETE CASCADE ON UPDATE CASCADE,"
-				   "FOREIGN KEY (tagid) REFERENCES tag ON DELETE CASCADE ON UPDATE CASCADE"
+			q.exec("CREATE TABLE tagrule ("
+				   "rule TEXT PRIMARY KEY NOT NULL,"
+				   "ruleorder INTEGER NOT NULL,"
+				   "tags TEXT NOT NULL"
 				   ")");
 		}
 
@@ -76,6 +75,35 @@ Database::Database(const QDir& metadir, QObject *parent) :
 
 Database::~Database()
 {
+}
+
+/**
+  Tag index creation is in its own function, because when rebuilding
+  the index, its a good idea to just drop the old data, tables and all.
+  \param dropfirst if true, the old tables are dropped
+  */
+void Database::createTagIndexTables(bool dropfirst) const
+{
+	QSqlQuery q(m_db);
+	// Tags
+	if(dropfirst)
+		q.exec("DROP TABLE IF EXISTS tag");
+	q.exec("CREATE TABLE IF NOT EXISTS tag ("
+		   "tagid INTEGER PRIMARY KEY NOT NULL,"
+		   "tag TEXT UNIQUE NOT NULL"
+		   ")");
+
+	// Tag <-> picture associations
+	if(dropfirst)
+		q.exec("DROP TABLE IF EXISTS tagmap");
+	q.exec("CREATE TABLE IF NOT EXISTS tagmap ("
+		   "picid INTEGER NOT NULL,"
+		   "tagid INTEGER NOT NULL,"
+		   "tagset INTEGER NOT NULL,"
+		   "PRIMARY KEY (picid, tagid, tagset),"
+		   "FOREIGN KEY (picid) REFERENCES picture ON DELETE CASCADE ON UPDATE CASCADE,"
+		   "FOREIGN KEY (tagid) REFERENCES tag ON DELETE CASCADE ON UPDATE CASCADE"
+		   ")");
 }
 
 void Database::saveSetting(const QString& key, const QVariant& value) const
@@ -105,20 +133,18 @@ QVariant Database::getSetting(const QString& key) const
   */
 int Database::getOrCreateTag(const QString& name) const
 {
-	QString normalized = name.toLower();
+	QString normalized = Util::cleanTagName(name);
 	if(normalized.length()==0)
 		return -1;
 
-	QSqlQuery q(m_db);
-	q.prepare("SELECT tagid FROM tag WHERE tag=?");
-	q.addBindValue(normalized);
-	if(!q.exec()) {
-		qDebug() << "Couldn't get ID for tag" << name << q.lastError().text();
-		return -1;
-	}
-	if(q.next())
-		return q.value(0).toInt();
+	// See if tag exists
+	int tagid = getTag(normalized);
 
+	if(tagid>0)
+		return tagid;
+
+	// If not, create it
+	QSqlQuery q(m_db);
 	q.prepare("INSERT INTO tag (tag) VALUES (?)");
 	q.addBindValue(normalized);
 	if(!q.exec()) {
@@ -134,15 +160,26 @@ int Database::getOrCreateTag(const QString& name) const
   */
 int Database::getTag(const QString& name) const
 {
-	QString normalized = name.toLower();
+	QString normalized = Util::cleanTagName(name);
 
 	QSqlQuery q(m_db);
-	q.prepare("SELECT tagid FROM tag WHERE tag=?");
-	q.addBindValue(normalized);
+	// See if the tag has been aliased
+	q.prepare("SELECT tag FROM tagalias WHERE alias=?");
+	q.bindValue(0, normalized);
 	if(!q.exec())
 		qDebug() << "Couldn't get ID for tag" << name << q.lastError().text();
 	if(q.next())
+		normalized = q.value(0).toString();
+
+	// Okay, we got an alias. Now get the real tag
+	q.prepare("SELECT tagid FROM tag WHERE tag=?");
+	q.bindValue(0, normalized);
+	if(!q.exec())
+		qDebug() << "Couldn't get ID for tag" << name << q.lastError().text();
+	if(q.next()) {
+		// Tag found
 		return q.value(0).toInt();
+	}
 
 	return -1;
 }

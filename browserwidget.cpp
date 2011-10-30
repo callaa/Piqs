@@ -24,6 +24,8 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	m_view->setResizeMode(QListView::Adjust);
 	m_view->setUniformItemSizes(true);
 	m_view->setSpacing(6);
+	m_view->setVerticalScrollMode(QListView::ScrollPerPixel);
+	m_view->setHorizontalScrollMode(QListView::ScrollPerPixel);
 	mainlayout->addWidget(m_view);
 
 	m_searchbox = new QLineEdit();

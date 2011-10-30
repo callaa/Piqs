@@ -35,6 +35,9 @@ public slots:
 	//! Rescan gallery directories for new files
 	void rescan();
 
+	//! Show the tag rules dialog
+	void showTagrules();
+
 protected:
 	void closeEvent(QCloseEvent *e);
 
@@ -58,6 +61,7 @@ private:
 	// Actions
 	QAction *m_act_open;
 	QAction *m_act_rescan;
+	QAction *m_act_tagrules;
 	QAction *m_act_exit;
 };
 
