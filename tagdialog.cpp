@@ -20,6 +20,10 @@ TagDialog::TagDialog(const Database *database, QWidget *parent) :
 {
 	m_ui->setupUi(this);
 
+	// Rules are applied in the order they are listed and therefore must
+	// be manually sortable.
+	m_ui->ruletable->verticalHeader()->setMovable(true);
+
 	// Get aliases
 	QSqlQuery q("SELECT alias, tag FROM tagalias ORDER BY tag ASC", database->get());
 	int row=0;
@@ -82,7 +86,8 @@ void TagDialog::aliasTableChanged(int row, int col)
 void TagDialog::ruleTableChanged(int row, int col)
 {
 	m_ruledirty = true;
-	QString val = m_ui->ruletable->item(row, col)->data(Qt::DisplayRole).toString();
+	QTableWidgetItem *item = m_ui->ruletable->item(row, col);
+	QString val = item->data(Qt::DisplayRole).toString();
 	if(val=="") {
 		if(row<m_ui->ruletable->rowCount()-1)
 			m_ui->ruletable->removeRow(row);
@@ -123,6 +128,9 @@ void TagDialog::saveChanges()
 		m_database->get().commit();
 	}
 
+
+	m_ruledirty |= m_ui->ruletable->verticalHeader()->sectionsMoved();
+
 	if(m_ruledirty) {
 		// Save changes to rules
 
@@ -132,9 +140,10 @@ void TagDialog::saveChanges()
 
 		q.prepare("INSERT INTO tagrule VALUES (?, ?, ?)");
 		for(int i=0;i<m_ui->ruletable->rowCount()-1;++i) {
-			q.bindValue(0, m_ui->ruletable->item(i, 0)->data(Qt::DisplayRole));
+			int realitem = m_ui->ruletable->verticalHeader()->logicalIndex(i);
+			q.bindValue(0, m_ui->ruletable->item(realitem, 0)->data(Qt::DisplayRole));
 			q.bindValue(1, i);
-			q.bindValue(2, m_ui->ruletable->item(i, 1)->data(Qt::DisplayRole));
+			q.bindValue(2, m_ui->ruletable->item(realitem, 1)->data(Qt::DisplayRole));
 			q.exec();
 		}
 		m_database->get().commit();
@@ -143,7 +152,8 @@ void TagDialog::saveChanges()
 	if(m_aliasdirty | m_ruledirty) {
 		QMessageBox msgbox;
 		msgbox.setText(tr("Rebuild tag index?"));
-		msgbox.setInformativeText("The tag index needs to be rebuilt for the new rules to take effect.");
+		msgbox.setIcon(QMessageBox::Question);
+		msgbox.setInformativeText("This will apply the new rules to all existing tags.");
 		msgbox.setWindowTitle(tr("Tag rules changed"));
 		msgbox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
 		msgbox.setButtonText(QMessageBox::Yes, tr("Rebuild"));

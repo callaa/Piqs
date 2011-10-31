@@ -22,7 +22,6 @@ public:
 protected slots:
 	void aliasTableChanged(int row, int col);
 	void ruleTableChanged(int row, int col);
-
 	void saveChanges();
 
 private:

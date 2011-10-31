@@ -137,14 +137,27 @@ int Database::getOrCreateTag(const QString& name) const
 	if(normalized.length()==0)
 		return -1;
 
-	// See if tag exists
-	int tagid = getTag(normalized);
+	QSqlQuery q(m_db);
+	// See if the tag has been aliased
+	q.prepare("SELECT tag FROM tagalias WHERE alias=?");
+	q.bindValue(0, normalized);
+	if(!q.exec())
+		qDebug() << "Couldn't get ID for tag" << name << q.lastError().text();
+	if(q.next())
+		normalized = q.value(0).toString();
 
-	if(tagid>0)
-		return tagid;
+	// Okay, we got an alias. Now get the real tag
+	q.prepare("SELECT tagid FROM tag WHERE tag=?");
+	q.bindValue(0, normalized);
+	if(!q.exec())
+		qDebug() << "Couldn't get ID for tag" << name << q.lastError().text();
+	if(q.next()) {
+		// Tag found
+		return q.value(0).toInt();
+	}
+
 
 	// If not, create it
-	QSqlQuery q(m_db);
 	q.prepare("INSERT INTO tag (tag) VALUES (?)");
 	q.addBindValue(normalized);
 	if(!q.exec()) {

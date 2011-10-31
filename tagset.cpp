@@ -168,6 +168,18 @@ void TagIdSet::insertTags(const TagIdVector& tags, int set)
 
 void TagIdSet::insertSet(const TagIdVector& tags)
 {
+	for(int i=1;i<m_sets.count();++i) {
+		bool subset = true;
+		for(int j=0;j<tags.count();++j) {
+			if(!m_sets.at(i).contains(tags.at(j))) {
+				subset = false;
+				break;
+			}
+		}
+		if(subset)
+			return;
+	}
+
 	m_sets.append(tags);
 }
 

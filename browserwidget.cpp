@@ -26,6 +26,7 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	m_view->setSpacing(6);
 	m_view->setVerticalScrollMode(QListView::ScrollPerPixel);
 	m_view->setHorizontalScrollMode(QListView::ScrollPerPixel);
+	m_view->setSelectionMode(QListView::ExtendedSelection);
 	mainlayout->addWidget(m_view);
 
 	m_searchbox = new QLineEdit();
@@ -106,6 +107,16 @@ int BrowserWidget::getPictureCount() const
 int BrowserWidget::getCurrentSelection() const
 {
 	return m_view->selectionModel()->currentIndex().row();
+}
+
+QVector<int> BrowserWidget::getSelection() const
+{
+	QModelIndexList sel = m_view->selectionModel()->selectedRows();
+	QVector<int> selection;
+	foreach(QModelIndex i, sel) {
+		selection.append(i.row());
+	}
+	return selection;
 }
 
 void BrowserWidget::selectPicture(int index)

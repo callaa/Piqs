@@ -73,8 +73,6 @@ void ThumbnailModel::setQuery(const TagQuery &query)
 		}
 	}
 
-	qDebug() << "shortlist" << shortlist;
-
 	// Store the filtered list
 	if(!q.exec("DROP TABLE IF EXISTS t_query"))
 		qDebug() << "Couldn't drop old t_query:" << q.lastError().text();
@@ -137,8 +135,8 @@ QVariant ThumbnailModel::data(const QModelIndex &index, int role) const
 
 		if(role==Qt::DisplayRole) {
 			QString name = picture->title();
-			if(name.length() > 8)
-				name.truncate(8);
+			//if(name.length() > 8)
+			//	name.truncate(8);
 			return name;
 		} else if(role==Qt::ToolTipRole)
 			return picture->tagString();

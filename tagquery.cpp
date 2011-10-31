@@ -243,8 +243,9 @@ public:
 	void init(const Database *database)
 	{
 		m_id = database->getTag(m_value);
-		if(m_id<=0)
+		/*if(m_id<=0)
 			throw ParseException("No such tag: " + m_value);
+			*/
 	}
 
 	void gatherTagIds(QSet<int>& list) const {
@@ -254,6 +255,9 @@ public:
 	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
 	{
 		Q_UNUSED(limitmask);
+
+		if(m_id<=0)
+			return false;
 
 		if(limitset<0) {
 			for(int i=0;i<=tags.sets();++i)

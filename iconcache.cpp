@@ -60,7 +60,7 @@ void IconCache::cacheImage(const Gallery *gallery, const QString &image, const Q
 	QString src = gallery->root().absoluteFilePath(image);
 	QImage img(src);
 	QImage icon;
-	if(icon.width() > ICON_SIZE || icon.height() > ICON_SIZE) {
+	if(img.width() > ICON_SIZE || img.height() > ICON_SIZE) {
 		icon = img.scaled(ICON_SIZE, ICON_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 	} else {
 		icon = QImage(ICON_SIZE, ICON_SIZE, QImage::Format_RGB32);

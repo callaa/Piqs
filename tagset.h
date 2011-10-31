@@ -70,7 +70,7 @@ public:
 	//! Insert tags to the given set, ignoring duplicates
 	void insertTags(const TagIdVector& tags, int set);
 
-	//! Insert a new tag set
+	//! Insert a new tag set, unless a set containing the same values already exists
 	void insertSet(const TagIdVector& tags);
 
 	/**

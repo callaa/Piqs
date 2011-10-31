@@ -39,6 +39,9 @@ public:
 	//! Change picture tag string and save changes to the database.
 	void saveTags(const Database *db, const QString& tags);
 
+	//! Change picture title string and save changes to the database.
+	void saveTitle(const Database *db, const QString& newtitle);
+
 private:
 	int m_id;
 	QString m_relativename;

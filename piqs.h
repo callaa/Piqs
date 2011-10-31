@@ -38,13 +38,19 @@ public slots:
 	//! Show the tag rules dialog
 	void showTagrules();
 
+	//! Start a slideshow
+	void startSlideshow();
+
+	//! Show slideshow options dialog
+	void showSlideshowOptions();
+
 protected:
 	void closeEvent(QCloseEvent *e);
 
 private:
 	void initActions();
 
-	QAction *makeAction(const QString& title, const char *icon, const QKeySequence& shortcut);
+	QAction *makeAction(const QString& title, const char *icon, const QKeySequence& shortcut=QKeySequence());
 
 	//! Stack of view widgets
 	QStackedWidget *m_viewstack;
@@ -63,6 +69,11 @@ private:
 	QAction *m_act_rescan;
 	QAction *m_act_tagrules;
 	QAction *m_act_exit;
+
+	QAction *m_act_slideshow;
+	QAction *m_act_slideselected;
+	QAction *m_act_slideshuffle;
+	QAction *m_act_slideshowopts;
 };
 
 #endif // PIQS_H

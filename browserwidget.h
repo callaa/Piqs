@@ -27,8 +27,13 @@ public:
 	//! Get the index of the currently selected image
 	int getCurrentSelection() const;
 
+	//! Get all currently selected indexes
+	QVector<int> getSelection() const;
+
 	//! Set the selection
 	void selectPicture(int index);
+
+	ThumbnailModel *getThumbnailModel() { return m_model; }
 
 signals:
 	//! User selected a picture for closer viewing

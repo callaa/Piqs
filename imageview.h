@@ -36,6 +36,9 @@ public slots:
 	void zoomfit(bool checked);
 	void zoomorig();
 
+	//! Save changes to title
+	void saveTitle();
+
 	//! Save changes to tags
 	void saveTags();
 

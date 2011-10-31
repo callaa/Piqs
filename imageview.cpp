@@ -38,6 +38,7 @@ ImageView::ImageView(const Gallery *gallery, QWidget *parent) :
 	connect(m_ui->nextbutton, SIGNAL(clicked()), this, SIGNAL(requestNext()));
 	connect(m_ui->prevbutton, SIGNAL(clicked()), this, SIGNAL(requestPrev()));
 
+	connect(m_ui->titleedit, SIGNAL(returnPressed()), this, SLOT(saveTitle()));
 	connect(m_ui->tagedit, SIGNAL(returnPressed()), this, SLOT(saveTags()));
 }
 
@@ -56,14 +57,20 @@ void ImageView::setPicture(const Picture &picture)
 	m_picture = picture;
 	m_scene->clear();
 
-	qDebug() << picture.fullpath(m_gallery);
 	QGraphicsPixmapItem *item = m_scene->addPixmap(QPixmap(picture.fullpath(m_gallery)));
 	m_scene->setSceneRect(item->boundingRect());
 	if(isAutofit())
 		scaleToFit();
 
+	m_ui->titleedit->setText(picture.title());
 	m_ui->tagedit->setText(picture.tagString());
 	m_ui->alltags->setText(TagSet::getForPicture(m_gallery->database(), picture.id()).toString());
+}
+
+void ImageView::saveTitle()
+{
+	m_picture.saveTitle(m_gallery->database(), m_ui->titleedit->text());
+	emit changed();
 }
 
 void ImageView::saveTags()
