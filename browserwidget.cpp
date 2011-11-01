@@ -4,12 +4,15 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QShortcut>
+#include <QAction>
+#include <QMenu>
 
 #include "browserwidget.h"
 #include "gallery.h"
 #include "thumbnailmodel.h"
 #include "tagquery.h"
 #include "tagcompleter.h"
+#include "imageinfodialog.h"
 
 BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	QWidget(parent), m_gallery(gallery)
@@ -29,7 +32,24 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	m_view->setVerticalScrollMode(QListView::ScrollPerPixel);
 	m_view->setHorizontalScrollMode(QListView::ScrollPerPixel);
 	m_view->setSelectionMode(QListView::ExtendedSelection);
-	mainlayout->addWidget(m_view);
+	mainlayout->addWidget(m_view);	
+
+	m_viewctxmenu = new QMenu(this);
+	QAction *act_hide = new QAction(tr("Hide"), this);
+	QAction *act_show = new QAction(tr("Show"), this);
+	QAction *act_info = new QAction(tr("Information"), this);
+
+	m_viewctxmenu->addAction(act_hide);
+	m_viewctxmenu->addAction(act_show);
+	m_viewctxmenu->addSeparator();
+	m_viewctxmenu->addAction(act_info);
+
+	connect(act_hide, SIGNAL(triggered()), this, SLOT(picSelectedHide()));
+	connect(act_show, SIGNAL(triggered()), this, SLOT(picSelectedShow()));
+	connect(act_info, SIGNAL(triggered()), this, SLOT(picSelectedInfo()));
+
+	m_view->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(m_view, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(pictureContextMenu(QPoint)));
 
 	m_searchbox = new QLineEdit();
 	m_searchbox->setPlaceholderText(tr("Search"));
@@ -41,6 +61,42 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 
 	connect(m_view, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(openPicture(QModelIndex)));
 	connect(m_searchbox, SIGNAL(returnPressed()), this, SLOT(updateQuery()));
+}
+
+void BrowserWidget::pictureContextMenu(const QPoint& point)
+{
+	QModelIndex index = m_view->indexAt(point);
+	if(index.isValid()) {
+		const Picture *p = getPictureAt(getCurrentSelection());
+		if(p->isHidden()) {
+			m_viewctxmenu->actions()[0]->setVisible(false);
+			m_viewctxmenu->actions()[1]->setVisible(true);
+		} else {
+			m_viewctxmenu->actions()[0]->setVisible(true);
+			m_viewctxmenu->actions()[1]->setVisible(false);
+		}
+		m_viewctxmenu->popup(m_view->mapToGlobal(point));
+	}
+}
+
+void BrowserWidget::picSelectedInfo()
+{
+
+	qDebug() << getCurrentSelection();
+	const Picture *pic = getPictureAt(getCurrentSelection());
+	ImageInfoDialog *info = new ImageInfoDialog(pic->fullpath(m_gallery));
+	info->setAttribute(Qt::WA_DeleteOnClose, true);
+	info->show();
+}
+
+void BrowserWidget::picSelectedShow()
+{
+
+}
+
+void BrowserWidget::picSelectedHide()
+{
+
 }
 
 void BrowserWidget::openPicture(const QModelIndex& index)

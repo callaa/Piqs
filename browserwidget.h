@@ -6,6 +6,7 @@
 class QListView;
 class QLineEdit;
 class QModelIndex;
+class QMenu;
 
 class Gallery;
 class Picture;
@@ -52,11 +53,19 @@ public slots:
 	//! Uncache the currently selected picture (e.g. because metadata has been changed)
 	void uncacheSelected();
 
+protected slots:
+	void pictureContextMenu(const QPoint& point);
+
+	void picSelectedInfo();
+	void picSelectedShow();
+	void picSelectedHide();
+
 private:
 	Gallery *m_gallery;
 	QListView *m_view;
 	QLineEdit *m_searchbox;
 	ThumbnailModel *m_model;
+	QMenu *m_viewctxmenu;
 };
 
 #endif // BROWSERWIDGET_H
