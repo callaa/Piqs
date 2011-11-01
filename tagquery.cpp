@@ -6,6 +6,7 @@
 #include "util.h"
 #include "database.h"
 #include "tagset.h"
+#include "tags.h"
 
 class ParseException {
 public:
@@ -22,7 +23,9 @@ public:
 
 	virtual void debug(QDebug &dbg) const = 0;
 
-	virtual void init(const Database *database) = 0;
+	virtual void init(const Tags *tags) = 0;
+
+	virtual void queryInit(Tags *tags) = 0;
 
 	virtual void gatherTagIds(QSet<int>& list) const = 0;
 
@@ -56,12 +59,20 @@ public:
 		delete m_right;
 	}
 
-	void init(const Database *database)
+	void init(const Tags *database)
 	{
 		if(m_left==0 || m_right==0)
 			throw ParseException("BUG: Uninitialized binary operator node");
 		m_left->init(database);
 		m_right->init(database);
+	}
+
+	void queryInit(Tags *database)
+	{
+		if(m_left==0 || m_right==0)
+			throw ParseException("BUG: Uninitialized binary operator node");
+		m_left->queryInit(database);
+		m_right->queryInit(database);
 	}
 
 	void gatherTagIds(QSet<int>& list) const {
@@ -92,11 +103,18 @@ public:
 		delete m_node;
 	}
 
-	void init(const Database *database)
+	void init(const Tags *database)
 	{
 		if(m_node==0)
 			throw ParseException("BUG: Uninitialized unary operator node");
 		m_node->init(database);
+	}
+
+	void queryInit(Tags *database)
+	{
+		if(m_node==0)
+			throw ParseException("BUG: Uninitialized unary operator node");
+		m_node->queryInit(database);
 	}
 
 	void gatherTagIds(QSet<int>& list) const {
@@ -240,16 +258,25 @@ public:
 
 	const QString& value() const { return m_value; }
 
-	void init(const Database *database)
+	void init(const Tags *tags)
 	{
-		m_id = database->getTag(m_value);
+		m_id = tags->get(m_value);
 		/*if(m_id<=0)
 			throw ParseException("No such tag: " + m_value);
 			*/
 	}
 
+	void queryInit(Tags *tags)
+	{
+		if(m_value.at(0)==':')
+			m_id = -1;
+		else
+			m_id = tags->getOrCreate(m_value);
+	}
+
 	void gatherTagIds(QSet<int>& list) const {
-		list.insert(m_id);
+		if(m_id>0)
+			list.insert(m_id);
 	}
 
 	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
@@ -272,8 +299,16 @@ public:
 	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
 	{
 		Q_UNUSED(results);
-		long unused=0;
-		return match(tags, limitset, unused);
+		if(m_id<=0) {
+			// Some special pseudo tags are recognized here
+			if(m_value == ":any")
+				return true;
+			return false;
+		} else {
+			// Otherwise, match tags as usual
+			long unused=0;
+			return match(tags, limitset, unused);
+		}
 	}
 
 	void debug(QDebug &dbg) const
@@ -461,11 +496,22 @@ const QString& TagQuery::errorMessage() const
 	return m_p->error;
 }
 
-void TagQuery::init(const Database *database)
+void TagQuery::init(const Tags *tags)
 {
 	if(m_p->node!=0) {
 		try {
-			m_p->node->init(database);
+			m_p->node->init(tags);
+		} catch(const ParseException& e) {
+			m_p->error = e.message;
+		}
+	}
+}
+
+void TagQuery::queryInit(Tags *tags)
+{
+	if(m_p->node!=0) {
+		try {
+			m_p->node->queryInit(tags);
 		} catch(const ParseException& e) {
 			m_p->error = e.message;
 		}

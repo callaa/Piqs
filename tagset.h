@@ -6,6 +6,7 @@
 
 class Database;
 class QSqlQuery;
+class Tags;
 
 /**
   \brief The collection of tags on an image
@@ -49,7 +50,7 @@ public:
 	TagIdSet();
 
 	//! Construct from a tag set
-	TagIdSet(const TagSet &tagset, const Database *db, int pictureid=-1);
+	TagIdSet(const TagSet &tagset, Tags *tags, int pictureid=-1);
 
 	//! Get the tagset for a picture from an open result set
 	static TagIdSet getFromResults(QSqlQuery &query);
@@ -81,7 +82,7 @@ public:
 	int pictureId() const { return m_picid; }
 
 	//! Save the tags
-	void save(const Database *db);
+	void save(const Database *db, bool transaction=true);
 
 private:
 	int m_picid;

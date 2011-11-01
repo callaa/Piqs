@@ -3,11 +3,13 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QShortcut>
 
 #include "browserwidget.h"
 #include "gallery.h"
 #include "thumbnailmodel.h"
 #include "tagquery.h"
+#include "tagcompleter.h"
 
 BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	QWidget(parent), m_gallery(gallery)
@@ -31,6 +33,10 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 
 	m_searchbox = new QLineEdit();
 	m_searchbox->setPlaceholderText(tr("Search"));
+	m_searchbox->setCompleter(new TagCompleter(m_gallery->database()->tags()));
+
+	new QShortcut(QKeySequence("Ctrl+F"), m_searchbox, SLOT(setFocus()));
+
 	mainlayout->addWidget(m_searchbox);
 
 	connect(m_view, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(openPicture(QModelIndex)));
@@ -66,7 +72,7 @@ void BrowserWidget::updateQuery()
 	} else {
 		// Normal query
 		TagQuery query(search);
-		query.init(m_gallery->database());
+		query.init(m_gallery->database()->tags());
 		ok = !query.isError();
 		if(ok)
 			m_model->setQuery(query);

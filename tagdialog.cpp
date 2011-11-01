@@ -3,55 +3,30 @@
 #include <QTableWidgetItem>
 #include <QMessageBox>
 #include <QProgressDialog>
+#include <QVariant>
+#include <QBuffer>
 
 #include "tagdialog.h"
 #include "ui_tagdialog.h"
 #include "util.h"
 #include "tagset.h"
-#include "tagimplications.h"
+#include "tagrules.h"
+#include "tags.h"
 
+#include "gallery.h"
 #include "database.h"
 
-TagDialog::TagDialog(const Database *database, QWidget *parent) :
+TagDialog::TagDialog(Gallery *gallery, QWidget *parent) :
     QDialog(parent),
 	m_ui(new Ui::TagDialog),
-	m_database(database),
-	m_aliasdirty(false)
+	m_gallery(gallery)
 {
 	m_ui->setupUi(this);
 
-	// Rules are applied in the order they are listed and therefore must
-	// be manually sortable.
-	m_ui->ruletable->verticalHeader()->setMovable(true);
+	// Get tag rules
+	m_ui->rulesedit->setPlainText(m_gallery->database()->getSetting("tagrules").toString());
 
-	// Get aliases
-	QSqlQuery q("SELECT alias, tag FROM tagalias ORDER BY tag ASC", database->get());
-	int row=0;
-	while(q.next()) {
-		m_ui->aliastable->insertRow(row);
-		m_ui->aliastable->setItem(row, 0, new QTableWidgetItem(q.value(0).toString()));
-		m_ui->aliastable->setItem(row, 1, new QTableWidgetItem(q.value(1).toString()));
-		++row;
-	}
-	// One empty row for new aliases
-	m_ui->aliastable->insertRow(row);
-
-	connect(m_ui->aliastable, SIGNAL(cellChanged(int,int)), this, SLOT(aliasTableChanged(int, int)));
-
-	// Get rules
-	q.exec("SELECT rule, tags FROM tagrule ORDER by ruleorder ASC");
-	row = 0;
-	while(q.next()) {
-		m_ui->ruletable->insertRow(row);
-		m_ui->ruletable->setItem(row, 0, new QTableWidgetItem(q.value(0).toString()));
-		m_ui->ruletable->setItem(row, 1, new QTableWidgetItem(q.value(1).toString()));
-		++row;
-	}
-	// One empty row for new rules
-	m_ui->ruletable->insertRow(row);
-	connect(m_ui->ruletable, SIGNAL(cellChanged(int,int)), this, SLOT(ruleTableChanged(int, int)));
-
-	connect(this, SIGNAL(accepted()), this, SLOT(saveChanges()));
+	connect(m_ui->buttonBox, SIGNAL(accepted()), this, SLOT(saveChanges()));
 }
 
 TagDialog::~TagDialog()
@@ -59,145 +34,115 @@ TagDialog::~TagDialog()
 	delete m_ui;
 }
 
-void TagDialog::aliasTableChanged(int row, int col)
-{
-	m_aliasdirty = true;
-	QString val = m_ui->aliastable->item(row, col)->data(Qt::DisplayRole).toString();
-	if(val=="") {
-		if(row<m_ui->aliastable->rowCount()-1)
-			m_ui->aliastable->removeRow(row);
-	} else {
-		QString normalized = Util::cleanTagName(val);
-		if(col==1) {
-			// Special rule for tag column: the value may not appear in any alias row
-			for(int i=0;i<m_ui->aliastable->rowCount()-1;++i) {
-				if(m_ui->aliastable->item(i, 0)->data(Qt::DisplayRole).toString() == normalized) {
-					normalized = "";
-					break;
-				}
-			}
-		}
-		m_ui->aliastable->item(row, col)->setData(Qt::DisplayRole, normalized);
-		if(row==m_ui->aliastable->rowCount()-1)
-			m_ui->aliastable->insertRow(m_ui->aliastable->rowCount());
-	}
-}
-
-void TagDialog::ruleTableChanged(int row, int col)
-{
-	m_ruledirty = true;
-	QTableWidgetItem *item = m_ui->ruletable->item(row, col);
-	QString val = item->data(Qt::DisplayRole).toString();
-	if(val=="") {
-		if(row<m_ui->ruletable->rowCount()-1)
-			m_ui->ruletable->removeRow(row);
-	} else {
-		if(col==1) {
-			// clean up tags
-			QStringList tags = val.split(',');
-			QMutableListIterator<QString> i(tags);
-			while(i.hasNext()) {
-				QString str = Util::cleanTagName(i.next());
-				if(str.length()==0)
-					i.remove();
-				else
-					i.setValue(str);
-			}
-			m_ui->ruletable->item(row, 1)->setData(Qt::DisplayRole, tags.join(", "));
-		}
-		if(row==m_ui->ruletable->rowCount()-1)
-			m_ui->ruletable->insertRow(m_ui->ruletable->rowCount());
-	}
-}
-
 void TagDialog::saveChanges()
 {
-	if(m_aliasdirty) {
-		// Save changes to aliases
+	QString rulestring = m_ui->rulesedit->toPlainText();
+	QList<TagRuleExpression> rules;
 
-		m_database->get().transaction();
-		QSqlQuery q(m_database->get());
-		q.exec("DELETE FROM tagalias");
+	try {
+		QByteArray rulechrs(rulestring.toLocal8Bit());
+		QBuffer rulebuffer(&rulechrs);
+		rulebuffer.open(QIODevice::ReadOnly|QIODevice::Text);
 
-		q.prepare("INSERT INTO tagalias VALUES (?, ?)");
-		for(int i=0;i<m_ui->aliastable->rowCount()-1;++i) {
-			q.bindValue(0, m_ui->aliastable->item(i, 0)->data(Qt::DisplayRole));
-			q.bindValue(1, m_ui->aliastable->item(i, 1)->data(Qt::DisplayRole));
-			q.exec();
+		rules = TagImplications::parseRuleFile("", rulebuffer, m_gallery->metadir());
+	} catch(const TagRuleParseException& e) {
+		QString msg;
+		if(e.file.length()>0)
+			msg = e.file + ":";
+		msg = msg + ":" + QString::number(e.line) + ":" + e.message;
+
+		QMessageBox warning(QMessageBox::Warning, tr("Parse error"), msg);
+		warning.setStandardButtons(QMessageBox::Ignore | QMessageBox::Cancel);
+		if(warning.exec()==QMessageBox::Ignore) {
+			// User can ignore the warning and save the invalid rules anyway.
+			// In this case, the tag index is not rebuilt and the active rules are not changed
+			m_gallery->database()->saveSetting("tagrules", rulestring);
+			accept();
 		}
-		m_database->get().commit();
+		return;
 	}
 
+	// Save original rule source code
+	m_gallery->database()->saveSetting("tagrules", rulestring);
 
-	m_ruledirty |= m_ui->ruletable->verticalHeader()->sectionsMoved();
-
-	if(m_ruledirty) {
-		// Save changes to rules
-
-		m_database->get().transaction();
-		QSqlQuery q(m_database->get());
+	// Save rules for use
+	m_gallery->database()->get().transaction();
+	{
+		QSqlQuery q(m_gallery->database()->get());
+		q.exec("DELETE FROM tagalias");
 		q.exec("DELETE FROM tagrule");
 
-		q.prepare("INSERT INTO tagrule VALUES (?, ?, ?)");
-		for(int i=0;i<m_ui->ruletable->rowCount()-1;++i) {
-			int realitem = m_ui->ruletable->verticalHeader()->logicalIndex(i);
-			q.bindValue(0, m_ui->ruletable->item(realitem, 0)->data(Qt::DisplayRole));
-			q.bindValue(1, i);
-			q.bindValue(2, m_ui->ruletable->item(realitem, 1)->data(Qt::DisplayRole));
-			q.exec();
+		int rulecount=0;
+		foreach(const TagRuleExpression &expr, rules) {
+			if(expr.type == TagRuleExpression::ALIAS) {
+				q.prepare("INSERT INTO tagalias VALUES (?, ?)");
+				q.bindValue(0, expr.rule);
+				q.bindValue(1, expr.tagset);
+				q.exec();
+			} else {
+				q.prepare("INSERT INTO tagrule VALUES (?, ?, ?)");
+				q.bindValue(0, expr.rule);
+				q.bindValue(1, rulecount++);
+				q.bindValue(2, expr.tagset);
+				q.exec();
+			}
 		}
-		m_database->get().commit();
+	}
+	m_gallery->database()->get().commit();
+
+	// Rebuild tag index?
+	QMessageBox msgbox(QMessageBox::Question, tr("Tag rules changed"), tr("Rebuild tag index?"));
+	msgbox.setInformativeText(tr("This will apply the new rules to all existing tags."));
+	msgbox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+	msgbox.setButtonText(QMessageBox::Yes, tr("Rebuild"));
+	msgbox.setButtonText(QMessageBox::No, tr("Not now"));
+	if(msgbox.exec() == QMessageBox::Yes) {
+		rebuildTagIndex();
 	}
 
-	if(m_aliasdirty | m_ruledirty) {
-		QMessageBox msgbox;
-		msgbox.setText(tr("Rebuild tag index?"));
-		msgbox.setIcon(QMessageBox::Question);
-		msgbox.setInformativeText("This will apply the new rules to all existing tags.");
-		msgbox.setWindowTitle(tr("Tag rules changed"));
-		msgbox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-		msgbox.setButtonText(QMessageBox::Yes, tr("Rebuild"));
-		msgbox.setButtonText(QMessageBox::No, tr("Not now"));
-		if(msgbox.exec() == QMessageBox::Yes) {
-			rebuildTagIndex();
-		}
-	}
+	accept();
 }
 
 void TagDialog::rebuildTagIndex()
 {
-	TagImplications tagrules = TagImplications::load(m_database);
-
-	QSqlQuery q(m_database->get());
-	q.setForwardOnly(true);
-
-	// Get the number of pictures (for progress display)
-	q.exec("SELECT COUNT(*) FROM picture WHERE tags!=\"\"");
-	q.next();
-	int filecount = q.value(0).toInt();
+	// Get the number of pictures. This is needed for the progress bar
+	// and sqlite doesn't return the size of the result set.
+	int filecount;
+	{
+		QSqlQuery q("SELECT COUNT(*) FROM picture WHERE tags!=\"\"", m_gallery->database()->get());
+		if(!q.next()) {
+			Database::showError("Couldn't get file count!", q);
+			return;
+		}
+		filecount = q.value(0).toInt();
+	}
 
 	// Show progress dialog
 	QProgressDialog progress(tr("Rebuilding tag index..."), tr("Abort"), 0, filecount);
 	progress.setMinimumDuration(100);
 
-	// Destroy and re-create tables
-	m_database->get().transaction();
-	m_database->createTagIndexTables(true);
+	// Destroy and re-create tag index tables
+	m_gallery->database()->get().transaction();
+	m_gallery->database()->tags()->createTables(true);
+
+	TagImplications tagrules = TagImplications::load(m_gallery->database());
 
 	// Reinsert tags to index
+	QSqlQuery q(m_gallery->database()->get());
+	q.setForwardOnly(true);
 	q.exec("SELECT picid, tags FROM picture WHERE tags!=\"\"");
 	int pos=0;
 	while(q.next()) {
-		TagIdSet tagset(TagSet::parse(q.value(1).toString()), m_database, q.value(0).toInt());
+		TagIdSet tagset(TagSet::parse(q.value(1).toString()), m_gallery->database()->tags(), q.value(0).toInt());
 		tagrules.apply(tagset);
-		tagset.save(m_database);
+		tagset.save(m_gallery->database(), false);
 
 		progress.setValue(++pos);
 		if(progress.wasCanceled()) {
-			m_database->get().rollback();
+			m_gallery->database()->get().rollback();
 			break;
 		}
 	}
 
-	m_database->get().commit();
+	m_gallery->database()->get().commit();
 }

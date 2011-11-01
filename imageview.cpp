@@ -9,8 +9,9 @@
 #include "picture.h"
 #include "tagset.h"
 #include "tagvalidator.h"
+#include "tagcompleter.h"
 
-ImageView::ImageView(const Gallery *gallery, QWidget *parent) :
+ImageView::ImageView(Gallery *gallery, QWidget *parent) :
     QWidget(parent),
 	m_ui(new Ui::ImageView),
 	m_gallery(gallery)
@@ -21,6 +22,7 @@ ImageView::ImageView(const Gallery *gallery, QWidget *parent) :
 	m_ui->view->setScene(m_scene);
 
 	m_ui->tagedit->setValidator(new TagValidator());
+	m_ui->tagedit->setCompleter(new TagCompleter(gallery->database()->tags()));
 
 	// Set action button icons
 	m_ui->fitbutton->setIcon(QIcon::fromTheme("zoom-fit-best"));
@@ -64,6 +66,7 @@ void ImageView::setPicture(const Picture &picture)
 
 	m_ui->titleedit->setText(picture.title());
 	m_ui->tagedit->setText(picture.tagString());
+	m_ui->tagedit->setFocus();
 	m_ui->alltags->setText(TagSet::getForPicture(m_gallery->database(), picture.id()).toString());
 }
 

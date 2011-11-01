@@ -5,6 +5,7 @@
 #include "database.h"
 #include "tagset.h"
 #include "util.h"
+#include "tags.h"
 
 TagSet::TagSet()
 {
@@ -104,12 +105,12 @@ TagIdSet::TagIdSet()
 {
 }
 
-TagIdSet::TagIdSet(const TagSet &tagset, const Database *db, int pictureid)
+TagIdSet::TagIdSet(const TagSet &tagset, Tags *tags, int pictureid)
 	: m_picid(pictureid), m_sets(tagset.sets()+1)
 {
 	for(int i=0;i<=tagset.sets();++i) {
 		foreach(const QString& tag, tagset.tags(i)) {
-			int id = db->getOrCreateTag(tag);
+			int id = tags->getOrCreate(tag);
 			if(!m_sets[i].contains(id))
 				m_sets[i].append(id);
 		}
@@ -183,7 +184,7 @@ void TagIdSet::insertSet(const TagIdVector& tags)
 	m_sets.append(tags);
 }
 
-void TagIdSet::save(const Database *db)
+void TagIdSet::save(const Database *db, bool transaction)
 {
 	if(m_picid<=0) {
 		qDebug() << "ERROR: trying to save TagIdSet with invalid picture id";
@@ -191,7 +192,8 @@ void TagIdSet::save(const Database *db)
 	}
 
 	// Clear out old tag associations
-	db->get().transaction();
+	if(transaction)
+		db->get().transaction();
 	QSqlQuery q(db->get());
 	q.exec("DELETE FROM tagmap WHERE picid=" + QString::number(m_picid));
 
@@ -203,9 +205,12 @@ void TagIdSet::save(const Database *db)
 		q.bindValue(2, set);
 		foreach(int tag, m_sets[set]) {
 			q.bindValue(1, tag);
-			q.exec();
+			if(!q.exec()) {
+				qDebug() << "Couldn't save tags for tag set" << set << "for picture" << m_picid;
+			}
 		}
 	}
 
-	db->get().commit();
+	if(transaction)
+		db->get().commit();
 }

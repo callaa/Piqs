@@ -18,7 +18,7 @@ class ImageView : public QWidget
     Q_OBJECT
 
 public:
-	explicit ImageView(const Gallery *gallery, QWidget *parent = 0);
+	explicit ImageView(Gallery *gallery, QWidget *parent = 0);
     ~ImageView();
 
 	//! Check if image autoscaling is enabled
@@ -63,7 +63,7 @@ private:
 	void scaleToFit();
 
 	Ui::ImageView *m_ui;
-	const Gallery *m_gallery;
+	Gallery *m_gallery;
 	Picture m_picture;
 	QGraphicsScene *m_scene;
 

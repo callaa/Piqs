@@ -6,7 +6,7 @@
 #include <QStringList>
 
 class TagQueryPrivate;
-class Database;
+class Tags;
 class TagIdSet;
 
 struct TagMatchResults
@@ -76,7 +76,10 @@ public:
 	const QString& errorMessage() const;
 
 	//! Look up tag IDs in preparation for query matching
-	void init(const Database *database);
+	void init(const Tags *tags);
+
+	//! Look up or create tags in preparation for analysis query
+	void queryInit(Tags *tags);
 
 	//! Get a list of tag IDs mentioned in the query (as a string list for SQL query building convenience)
 	QStringList mentionedTagIds() const;

@@ -85,7 +85,7 @@ void Piqs::rescan()
 
 void Piqs::showTagrules()
 {
-	TagDialog *dialog = new TagDialog(m_gallery->database(), this);
+	TagDialog *dialog = new TagDialog(m_gallery, this);
 	dialog->setAttribute(Qt::WA_DeleteOnClose, true);
 	dialog->setModal(true);
 	dialog->show();

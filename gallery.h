@@ -9,16 +9,16 @@
 
 class Database;
 class QSqlQuery;
+class Tags;
 
 class Gallery : public QObject
 {
 	Q_OBJECT
 public:
-	//! The directory where metadata and caches are stored
 	/**
-	 * This is the (hidden) subdirectory under the gallery root
-	 * path.
-	 */
+	  \brief The directory where metadata and caches are stored
+	  This is the (hidden) subdirectory under the gallery root path.
+	  */
 	static const QString METADIR;
 
 	//! Construct the gallery.
@@ -33,10 +33,10 @@ public:
 	//! Get the total number of images in the gallery
 	int totalCount() const;
 
-	//! Get the gallery root directory
 	/**
-	  * Every picture in the gallery is found either in this directory
-	  * or one of its subdirectories.
+	  \brief Get the gallery root directory
+	  Every picture in the gallery is found either in this directory
+	  or one of its subdirectories.
 	  */
 	const QDir& root() const { return m_root; }
 
@@ -45,6 +45,8 @@ public:
 
 	//! Get the database for this gallery
 	const Database* database() const { return m_database; }
+
+	Database *database() { return m_database; }
 
 private:
 	static QDir findRootGallery(QDir dir);

@@ -142,6 +142,18 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>titleedit</tabstop>
+  <tabstop>tagedit</tabstop>
+  <tabstop>origsizebutton</tabstop>
+  <tabstop>fitbutton</tabstop>
+  <tabstop>zoominbutton</tabstop>
+  <tabstop>zoomoutbutton</tabstop>
+  <tabstop>prevbutton</tabstop>
+  <tabstop>nextbutton</tabstop>
+  <tabstop>view</tabstop>
+  <tabstop>alltags</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

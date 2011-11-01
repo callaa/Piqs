@@ -4,10 +4,11 @@
 #include <QDir>
 #include <QDebug>
 #include <QVariant>
+#include <QMessageBox>
 
 #include "database.h"
 #include "picture.h"
-#include "util.h"
+#include "tags.h"
 
 int Database::dbindex = 0;
 
@@ -22,7 +23,8 @@ Database::Database(const QDir& metadir, QObject *parent) :
 	m_db.setDatabaseName(metadir.absoluteFilePath("index.db"));
 
 	if(m_db.open()) {
-		// Make sure the necessary tables exist
+		// Make sure the necessary tables exist	delete m_tags;
+
 		QStringList tables = m_db.tables();
 
 		// The main picture list table
@@ -39,7 +41,9 @@ Database::Database(const QDir& metadir, QObject *parent) :
 				   ")");
 		}
 
-		createTagIndexTables();
+		m_tags = new Tags(this);
+		m_tags->createTables();
+		m_tags->reload();
 
 		// Tag aliases
 		if(!tables.contains("tagalias")) {
@@ -77,33 +81,11 @@ Database::~Database()
 {
 }
 
-/**
-  Tag index creation is in its own function, because when rebuilding
-  the index, its a good idea to just drop the old data, tables and all.
-  \param dropfirst if true, the old tables are dropped
-  */
-void Database::createTagIndexTables(bool dropfirst) const
+void Database::showError(const QString& message, const QSqlQuery &query)
 {
-	QSqlQuery q(m_db);
-	// Tags
-	if(dropfirst)
-		q.exec("DROP TABLE IF EXISTS tag");
-	q.exec("CREATE TABLE IF NOT EXISTS tag ("
-		   "tagid INTEGER PRIMARY KEY NOT NULL,"
-		   "tag TEXT UNIQUE NOT NULL"
-		   ")");
-
-	// Tag <-> picture associations
-	if(dropfirst)
-		q.exec("DROP TABLE IF EXISTS tagmap");
-	q.exec("CREATE TABLE IF NOT EXISTS tagmap ("
-		   "picid INTEGER NOT NULL,"
-		   "tagid INTEGER NOT NULL,"
-		   "tagset INTEGER NOT NULL,"
-		   "PRIMARY KEY (picid, tagid, tagset),"
-		   "FOREIGN KEY (picid) REFERENCES picture ON DELETE CASCADE ON UPDATE CASCADE,"
-		   "FOREIGN KEY (tagid) REFERENCES tag ON DELETE CASCADE ON UPDATE CASCADE"
-		   ")");
+	QMessageBox msg(QMessageBox::Critical, tr("Database error"), message, QMessageBox::Ok);
+	msg.setDetailedText(query.lastError().text());
+	msg.exec();
 }
 
 void Database::saveSetting(const QString& key, const QVariant& value) const
@@ -128,71 +110,3 @@ QVariant Database::getSetting(const QString& key) const
 	return QVariant();
 }
 
-/**
-  \return tag ID or -1 in case of error
-  */
-int Database::getOrCreateTag(const QString& name) const
-{
-	QString normalized = Util::cleanTagName(name);
-	if(normalized.length()==0)
-		return -1;
-
-	QSqlQuery q(m_db);
-	// See if the tag has been aliased
-	q.prepare("SELECT tag FROM tagalias WHERE alias=?");
-	q.bindValue(0, normalized);
-	if(!q.exec())
-		qDebug() << "Couldn't get ID for tag" << name << q.lastError().text();
-	if(q.next())
-		normalized = q.value(0).toString();
-
-	// Okay, we got an alias. Now get the real tag
-	q.prepare("SELECT tagid FROM tag WHERE tag=?");
-	q.bindValue(0, normalized);
-	if(!q.exec())
-		qDebug() << "Couldn't get ID for tag" << name << q.lastError().text();
-	if(q.next()) {
-		// Tag found
-		return q.value(0).toInt();
-	}
-
-
-	// If not, create it
-	q.prepare("INSERT INTO tag (tag) VALUES (?)");
-	q.addBindValue(normalized);
-	if(!q.exec()) {
-		qDebug() << "Couldn't insert tag" << name << q.lastError().text();
-		return -1;
-	}
-
-	return q.lastInsertId().toInt();
-}
-
-/**
-  \return tag ID or -1 if not found
-  */
-int Database::getTag(const QString& name) const
-{
-	QString normalized = Util::cleanTagName(name);
-
-	QSqlQuery q(m_db);
-	// See if the tag has been aliased
-	q.prepare("SELECT tag FROM tagalias WHERE alias=?");
-	q.bindValue(0, normalized);
-	if(!q.exec())
-		qDebug() << "Couldn't get ID for tag" << name << q.lastError().text();
-	if(q.next())
-		normalized = q.value(0).toString();
-
-	// Okay, we got an alias. Now get the real tag
-	q.prepare("SELECT tagid FROM tag WHERE tag=?");
-	q.bindValue(0, normalized);
-	if(!q.exec())
-		qDebug() << "Couldn't get ID for tag" << name << q.lastError().text();
-	if(q.next()) {
-		// Tag found
-		return q.value(0).toInt();
-	}
-
-	return -1;
-}

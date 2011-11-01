@@ -4,7 +4,7 @@
 
 #include "picture.h"
 #include "gallery.h"
-#include "tagimplications.h"
+#include "tagrules.h"
 
 Picture::Picture()
 	: m_id(0), m_relativename(QString()), m_hidden(false), m_title(QString()), m_tags(QString()), m_rotation(0)
@@ -39,7 +39,7 @@ void Picture::saveTitle(const Database *db, const QString &newtitle)
   \param tags new tag string
   \return saved set of tags
   */
-void Picture::saveTags(const Database *db, const QString& tags)
+void Picture::saveTags(Database *db, const QString& tags)
 {
 	m_tags = tags;
 	QSqlQuery q(db->get());
@@ -50,7 +50,7 @@ void Picture::saveTags(const Database *db, const QString& tags)
 		qDebug() << "Couldn't save new tags to picture" << m_id;
 	}
 
-	TagIdSet tagset = TagIdSet(TagSet::parse(tags), db, m_id);
+	TagIdSet tagset = TagIdSet(TagSet::parse(tags), db->tags(), m_id);
 
 	TagImplications::load(db).apply(tagset);
 

@@ -26,9 +26,11 @@ SOURCES += main.cpp\
     tagvalidator.cpp \
     tagquery.cpp \
     tagdialog.cpp \
-    tagimplications.cpp \
     slideshow.cpp \
-    slideshowoptions.cpp
+    slideshowoptions.cpp \
+    tags.cpp \
+    tagcompleter.cpp \
+    tagrules.cpp
 
 HEADERS  += piqs.h \
     thumbnailmodel.h \
@@ -45,9 +47,11 @@ HEADERS  += piqs.h \
     tagvalidator.h \
     tagquery.h \
     tagdialog.h \
-    tagimplications.h \
     slideshow.h \
-    slideshowoptions.h
+    slideshowoptions.h \
+    tags.h \
+    tagcompleter.h \
+    tagrules.h
 
 FORMS += \
     imageview.ui \
