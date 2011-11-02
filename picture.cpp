@@ -5,6 +5,7 @@
 #include "picture.h"
 #include "gallery.h"
 #include "tagrules.h"
+#include "iconcache.h"
 
 Picture::Picture()
 	: m_id(0), m_relativename(QString()), m_hidden(false), m_title(QString()), m_tags(QString()), m_rotation(0)
@@ -31,6 +32,8 @@ void Picture::deleteFile(Gallery *gallery)
 	}
 
 	QFile(fullpath(gallery)).remove();
+
+	IconCache::getInstance().remove(gallery, *this);
 }
 
 void Picture::setHidden(Database *db, bool hidden)

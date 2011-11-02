@@ -30,6 +30,9 @@ public:
 
 	~Gallery();
 
+	//! Was the gallery opened succesfully?
+	bool isOk() const;
+
 	//! Get the total number of images in the gallery
 	int totalCount() const;
 
@@ -54,6 +57,7 @@ private:
 	const QDir m_root;
 	QDir m_metadir;
 	Database *m_database;
+	bool m_ok;
 };
 
 #endif // GALLERY_H

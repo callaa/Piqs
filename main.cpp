@@ -4,8 +4,16 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    Piqs w;
-    w.show();
+
+	{
+		QStringList args = a.arguments();
+		QString root;
+		if(args.length()>1) {
+			root = args.at(1);
+		}
+		Piqs *w = new Piqs(root);
+		w->show();
+	}
 
     return a.exec();
 }

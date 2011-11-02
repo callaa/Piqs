@@ -6,9 +6,9 @@
 #include "picture.h"
 
 IconCache::IconCache()
-	: _cache(255), _placeholder(QPixmap(ICON_SIZE, ICON_SIZE))
+	: m_cache(255), m_placeholder(QPixmap(ICON_SIZE, ICON_SIZE))
 {
-	_placeholder.fill(Qt::gray);
+	m_placeholder.fill(Qt::gray);
 }
 
 IconCache& IconCache::getInstance()
@@ -17,14 +17,17 @@ IconCache& IconCache::getInstance()
 	return *singleton;
 }
 
+static QString cachefilepath(const Gallery *gallery, const Picture &picture) {
+	return gallery->metadir().absoluteFilePath(
+				QString::number(picture.id()/10000) + QDir::separator() + QString::number(picture.id()/100) + QDir::separator() +
+				QString::number(picture.id()) + ".jpg");;
+}
+
 QPixmap IconCache::get(const Gallery *gallery, const Picture &picture)
 {
-	// The thumbnail files are distributed into subdirectories
-	const QString cachefile = gallery->metadir().absoluteFilePath(
-				QString::number(picture.id()/10000) + QDir::separator() + QString::number(picture.id()/100) + QDir::separator() +
-				QString::number(picture.id()) + ".jpg");
+	const QString cachefile = cachefilepath(gallery, picture);
 
-	QPixmap *icon = _cache[cachefile];
+	QPixmap *icon = m_cache[cachefile];
 
 	if(icon!=0) {
 		// Was cached
@@ -34,25 +37,32 @@ QPixmap IconCache::get(const Gallery *gallery, const Picture &picture)
 		icon = new QPixmap(cachefile);
 		if(!icon->isNull()) {
 			// Found filesystem cache
-			_cache.insert(cachefile, icon);
+			m_cache.insert(cachefile, icon);
 
 			return *icon;
 		} else {
 			// No filesystem cache. Queue generation.
 			delete icon;
-			_lock.lock();
-			if(!_loading.contains(cachefile)) {
-				_loading.insert(cachefile);
-				_lock.unlock();
+			m_lock.lock();
+			if(!m_loading.contains(cachefile)) {
+				m_loading.insert(cachefile);
+				m_lock.unlock();
 
 				QtConcurrent::run(this, &IconCache::cacheImage, gallery, picture.relativeName(), cachefile);
 			} else {
-				_lock.unlock();;
+				m_lock.unlock();;
 			}
 
-			return _placeholder;
+			return m_placeholder;
 		}
 	}
+}
+
+void IconCache::remove(const Gallery *gallery, const Picture& picture)
+{
+	const QString cachefile = cachefilepath(gallery, picture);
+	QFile(cachefile).remove();
+	m_cache.remove(cachefile);
 }
 
 void IconCache::cacheImage(const Gallery *gallery, const QString &image, const QString& cachefile)
@@ -72,7 +82,7 @@ void IconCache::cacheImage(const Gallery *gallery, const QString &image, const Q
 	gallery->metadir().mkpath(QFileInfo(cachefile).dir().path());
 
 	icon.save(cachefile);
-	_lock.lock();
-	_loading.remove(cachefile);
-	_lock.unlock();
+	m_lock.lock();
+	m_loading.remove(cachefile);
+	m_lock.unlock();
 }

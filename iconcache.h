@@ -16,7 +16,8 @@ public:
 	static IconCache& getInstance();
 
 	/**
-	 Get an icon for the image from the gallery.
+	 \brief Get an icon for the image from the gallery.
+
 	 If an icon is not available right away, a placeholder
 	 icon will be returned and icon loading will be queued in the
 	 background.
@@ -25,6 +26,9 @@ public:
 	 @return icon
 	 */
 	QPixmap get(const Gallery* gallery, const Picture& picture);
+
+	//! Delete a thumbnail
+	void remove(const Gallery *gallery, const Picture& picture);
 
 private:
     IconCache();
@@ -35,16 +39,16 @@ private:
 	void cacheImage(const Gallery *gallery, const QString &image, const QString& cachefile);
 
 	//! Cached icon pixmaps
-	QCache<QString, QPixmap> _cache;
+	QCache<QString, QPixmap> m_cache;
 
 	//! A pixmap that is shown when the true icon is not yet available
-	QPixmap _placeholder;
+	QPixmap m_placeholder;
 
 	//! Set of thumbnails queued
-	QSet<QString> _loading;
+	QSet<QString> m_loading;
 
 	//! Lock for _loading
-	QMutex _lock;
+	QMutex m_lock;
 
 	static const int ICON_SIZE = 128;
 };

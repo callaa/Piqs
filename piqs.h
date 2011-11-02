@@ -16,8 +16,11 @@ class Piqs : public QMainWindow
 {
     Q_OBJECT
 public:
-    Piqs(QWidget *parent = 0);
+	Piqs(const QString& root, QWidget *parent = 0);
     ~Piqs();
+
+	//! Check if the given path is this gallery's root or subdirectory
+	bool isGalleryDir(const QString& dir) const;
 
 public slots:
 	//! Switch to picture viewing mode and show the picture
@@ -46,6 +49,9 @@ public slots:
 
 	//! Show slideshow options dialog
 	void showSlideshowOptions();
+
+	//! Show dialog for opening a new main window instance
+	void showOpenDialog();
 
 protected:
 	void closeEvent(QCloseEvent *e);

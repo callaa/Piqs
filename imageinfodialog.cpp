@@ -1,5 +1,6 @@
 #include <QFileInfo>
 #include <QImageReader>
+#include <QDateTime>
 
 #include "imageinfodialog.h"
 #include "ui_imageinfodialog.h"
@@ -14,7 +15,7 @@ ImageInfoDialog::ImageInfoDialog(const QString& file, QWidget *parent) :
 	m_ui->namelabel->setText(fileinfo.fileName());
 	m_ui->pathlabel->setText(fileinfo.path());
 	m_ui->sizelabel->setText(QString::number(fileinfo.size())); // TODO human friendly format
-
+	m_ui->createdlabel->setText(fileinfo.created().toString(Qt::DefaultLocaleShortDate));
 	QImageReader reader(file);
 	m_ui->typelabel->setText(QString::fromLatin1(reader.format()));
 	QSize size = reader.size();

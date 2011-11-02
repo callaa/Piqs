@@ -11,15 +11,24 @@
 const QString Gallery::METADIR = ".piqs";
 
 Gallery::Gallery(const QDir& root, QObject *parent)
-	: QObject(parent), m_root(findRootGallery(root))
+	: QObject(parent), m_root(findRootGallery(root)), m_database(0), m_ok(false)
 {
 	// TODO error handling
 	if(!m_root.exists(METADIR))
-		m_root.mkdir(METADIR);
+		if(!m_root.mkdir(METADIR))
+			return;
+
 	m_metadir = m_root;
 	m_metadir.cd(METADIR);
 
 	m_database = new Database(m_metadir, this);
+
+	m_ok = true;
+}
+
+bool Gallery::isOk() const
+{
+	return m_ok;
 }
 
 /**
@@ -31,7 +40,6 @@ QDir Gallery::findRootGallery(QDir dir)
 {
 	QDir top = dir;
 	while(1) {
-		qDebug() << "finding root gallery" << dir;
 		if(dir.exists(METADIR))
 			return dir;
 		else if(!dir.cdUp())
@@ -44,9 +52,11 @@ QDir Gallery::findRootGallery(QDir dir)
 Gallery::~Gallery()
 {
 	// Explicitly delete the database here to release the associated connection.
-	QString dbname = m_database->name();
-	delete m_database;
-	QSqlDatabase::removeDatabase(dbname);
+	if(m_database!=0) {
+		QString dbname = m_database->name();
+		delete m_database;
+		QSqlDatabase::removeDatabase(dbname);
+	}
 }
 
 int Gallery::totalCount() const

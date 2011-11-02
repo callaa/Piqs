@@ -1,9 +1,12 @@
+#include <QApplication>
+#include <QMessageBox>
 #include <QMenuBar>
 #include <QListView>
 #include <QStackedWidget>
 #include <QListView>
 #include <QDebug>
 #include <QTimer>
+#include <QFileDialog>
 
 #include <cstdlib> // for RAND_MAX
 
@@ -20,9 +23,11 @@
 #include "rescandialog.h"
 #include "slideshow.h"
 
-Piqs::Piqs(QWidget *parent)
+Piqs::Piqs(const QString& root, QWidget *parent)
     : QMainWindow(parent)
 {
+	setAttribute(Qt::WA_DeleteOnClose, true);
+
 	// Create actions
 	initActions();
 
@@ -45,37 +50,71 @@ Piqs::Piqs(QWidget *parent)
 	slidemenu->addAction(m_act_slideshowopts);
 
 	// Create main gallery object
-	m_gallery = new Gallery(QDir(), this);
-	//gallery->rescan();
+	m_gallery = new Gallery(QDir(root), this);
 
-	// Create browser view
-	m_browser = new BrowserWidget(m_gallery);
+	if(!m_gallery->isOk()) {
+		QMessageBox::critical(0, tr("Error"), tr("Couldn't open gallery"));
+		this->deleteLater();
+		return;
+	} else {
+		// Set window title
+		this->setWindowTitle(QString("%1 - Piqs").arg(QDir(m_gallery->root().absolutePath()).dirName()));
+		// Create browser view
+		m_browser = new BrowserWidget(m_gallery);
 
-	// Create the (single) image viewer view
-	m_viewer = new ImageView(m_gallery);
+		// Create the (single) image viewer view
+		m_viewer = new ImageView(m_gallery);
 
-	// The view stack for switching between image browser and image viewer
-	m_viewstack = new QStackedWidget(this);
-	m_viewstack->addWidget(m_browser);
-	m_viewstack->addWidget(m_viewer);
-	setCentralWidget(m_viewstack);
+		// The view stack for switching between image browser and image viewer
+		m_viewstack = new QStackedWidget(this);
+		m_viewstack->addWidget(m_browser);
+		m_viewstack->addWidget(m_viewer);
+		setCentralWidget(m_viewstack);
 
-	connect(m_browser, SIGNAL(pictureSelected(Picture)), this, SLOT(showPicture(Picture)));
-	connect(m_viewer, SIGNAL(exitView()), this, SLOT(showBrowser()));
-	connect(m_viewer, SIGNAL(requestNext()), this, SLOT(showNextPicture()));
-	connect(m_viewer, SIGNAL(requestPrev()), this, SLOT(showPreviousPicture()));
-	connect(m_viewer, SIGNAL(changed()), m_browser, SLOT(refreshQuery()));
+		connect(m_browser, SIGNAL(pictureSelected(Picture)), this, SLOT(showPicture(Picture)));
+		connect(m_viewer, SIGNAL(exitView()), this, SLOT(showBrowser()));
+		connect(m_viewer, SIGNAL(requestNext()), this, SLOT(showNextPicture()));
+		connect(m_viewer, SIGNAL(requestPrev()), this, SLOT(showPreviousPicture()));
+		connect(m_viewer, SIGNAL(changed()), m_browser, SLOT(refreshQuery()));
 
-	restoreGeometry(QByteArray::fromBase64(m_gallery->database()->getSetting("window.geometry").toByteArray()));
-	m_viewer->setAutofit(m_gallery->database()->getSetting("viewer.autofit").toBool());
+		restoreGeometry(QByteArray::fromBase64(m_gallery->database()->getSetting("window.geometry").toByteArray()));
+		m_viewer->setAutofit(m_gallery->database()->getSetting("viewer.autofit").toBool());
 
-	if(m_gallery->totalCount()==0)
-		rescan();
+		if(m_gallery->totalCount()==0)
+			rescan();
+	}
 }
 
 Piqs::~Piqs()
 {
 
+}
+
+void Piqs::showOpenDialog()
+{
+	QString dir = QFileDialog::getExistingDirectory(this);
+	if(dir.isEmpty())
+		return;
+
+	// Check that the gallery hasn't been opened already
+	foreach(QWidget *toplevel, QApplication::topLevelWidgets()) {
+		Piqs *piqs = qobject_cast<Piqs*>(toplevel);
+		if(piqs!=0 && piqs->isGalleryDir(dir)) {
+			qDebug() << "found existing window for" << dir;
+			piqs->raise();
+			piqs->activateWindow();
+			return;
+		}
+	}
+
+	// Gallery doesn't seem to be open already.
+	qDebug() << "opening new window for" << dir;
+	(new Piqs(dir))->show();
+}
+
+bool Piqs::isGalleryDir(const QString& dir) const
+{
+	return dir.startsWith(m_gallery->root().absolutePath());
 }
 
 void Piqs::rescan()
@@ -106,7 +145,6 @@ void Piqs::showTaglist()
 void Piqs::initActions()
 {
 	m_act_open = makeAction(tr("&Open..."), "document-open", QKeySequence::Open);
-	m_act_open->setDisabled(true); // TODO
 	m_act_rescan = makeAction(tr("Rescan"), "edit-redo");
 	m_act_tagrules = makeAction(tr("&Tag rules..."), "configure");
 	m_act_taglist = makeAction(tr("Tag list..."), 0);
@@ -114,6 +152,7 @@ void Piqs::initActions()
 
 	m_act_exit->setMenuRole(QAction::QuitRole);
 
+	connect(m_act_open, SIGNAL(triggered()), this, SLOT(showOpenDialog()));
 	connect(m_act_rescan, SIGNAL(triggered()), this, SLOT(rescan()));
 	connect(m_act_exit, SIGNAL(triggered()), this, SLOT(close()));
 	connect(m_act_tagrules, SIGNAL(triggered()), this, SLOT(showTagrules()));
