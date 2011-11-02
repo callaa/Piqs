@@ -57,5 +57,5 @@ QStringList Util::tokenize(const QString& string, const QString& tokenstring, bo
 QString Util::cleanTagName(const QString& name)
 {
 	static QRegExp badchars("[,|()[\\]!]");
-	return name.trimmed().toLower().replace(badchars, "");
+	return name.simplified().toLower().replace(badchars, "");
 }

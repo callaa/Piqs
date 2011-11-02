@@ -22,6 +22,24 @@ QString Picture::fullpath(const Gallery *gallery) const
 	return gallery->root().absoluteFilePath(m_relativename);
 }
 
+void Picture::deleteFile(Gallery *gallery)
+{
+	QSqlQuery q(gallery->database()->get());
+	if(!q.exec("DELETE FROM picture WHERE picid=" + QString::number(m_id))) {
+		Database::showError("Couldn't delete file!", q);
+		return;
+	}
+
+	QFile(fullpath(gallery)).remove();
+}
+
+void Picture::setHidden(Database *db, bool hidden)
+{
+	QSqlQuery q(db->get());
+	if(!q.exec("UPDATE picture SET hidden=" + QString::number(hidden) + " WHERE picid=" + QString::number(m_id)))
+		Database::showError("Couldn't " + QString(hidden?"hide":"show") + " picture", q);
+}
+
 void Picture::saveTitle(const Database *db, const QString &newtitle)
 {
 	m_title = newtitle;
@@ -30,7 +48,7 @@ void Picture::saveTitle(const Database *db, const QString &newtitle)
 	q.addBindValue(newtitle);
 	q.addBindValue(m_id);
 	if(!q.exec())
-		qDebug() << "Couldn't save new title for picture" << m_id;
+		Database::showError("Couldn't save new title for picture", q);
 }
 
 /**
@@ -47,7 +65,8 @@ void Picture::saveTags(Database *db, const QString& tags)
 	q.addBindValue(tags);
 	q.addBindValue(m_id);
 	if(!q.exec()) {
-		qDebug() << "Couldn't save new tags to picture" << m_id;
+		Database::showError("Couldn't save new tags for picture", q);
+		return;
 	}
 
 	TagIdSet tagset = TagIdSet(TagSet::parse(tags), db->tags(), m_id);

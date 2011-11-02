@@ -6,6 +6,8 @@
 #include <QShortcut>
 #include <QAction>
 #include <QMenu>
+#include <QInputDialog>
+#include <QMessageBox>
 
 #include "browserwidget.h"
 #include "gallery.h"
@@ -35,17 +37,23 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	mainlayout->addWidget(m_view);	
 
 	m_viewctxmenu = new QMenu(this);
+	QAction *act_addtags = new QAction(tr("Add tags..."), this);
 	QAction *act_hide = new QAction(tr("Hide"), this);
 	QAction *act_show = new QAction(tr("Show"), this);
+	QAction *act_delete = new QAction(tr("Delete..."), this);
 	QAction *act_info = new QAction(tr("Information"), this);
 
+	m_viewctxmenu->addAction(act_addtags);
 	m_viewctxmenu->addAction(act_hide);
 	m_viewctxmenu->addAction(act_show);
+	m_viewctxmenu->addAction(act_delete);
 	m_viewctxmenu->addSeparator();
 	m_viewctxmenu->addAction(act_info);
 
+	connect(act_addtags, SIGNAL(triggered()), this, SLOT(picSelectedAddtags()));
 	connect(act_hide, SIGNAL(triggered()), this, SLOT(picSelectedHide()));
 	connect(act_show, SIGNAL(triggered()), this, SLOT(picSelectedShow()));
+	connect(act_delete, SIGNAL(triggered()), this, SLOT(picSelectedDelete()));
 	connect(act_info, SIGNAL(triggered()), this, SLOT(picSelectedInfo()));
 
 	m_view->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -69,20 +77,38 @@ void BrowserWidget::pictureContextMenu(const QPoint& point)
 	if(index.isValid()) {
 		const Picture *p = getPictureAt(getCurrentSelection());
 		if(p->isHidden()) {
-			m_viewctxmenu->actions()[0]->setVisible(false);
-			m_viewctxmenu->actions()[1]->setVisible(true);
-		} else {
-			m_viewctxmenu->actions()[0]->setVisible(true);
 			m_viewctxmenu->actions()[1]->setVisible(false);
+			m_viewctxmenu->actions()[2]->setVisible(true);
+		} else {
+			m_viewctxmenu->actions()[1]->setVisible(true);
+			m_viewctxmenu->actions()[2]->setVisible(false);
 		}
 		m_viewctxmenu->popup(m_view->mapToGlobal(point));
 	}
 }
 
+void BrowserWidget::picSelectedAddtags()
+{
+	QString tags = QInputDialog::getText(this, tr("Add tags"), tr("Tags"));
+	tags = tags.trimmed();
+	if(tags.isEmpty())
+		return;
+
+	QList<Picture> list = m_model->pictures(m_view->selectionModel()->selectedRows());
+	for(int i=0;i<list.count();++i) {
+		QString t = list[i].tagString();
+		if(!t.isEmpty())
+			t += ",";
+		t += tags;
+		list[i].saveTags(m_gallery->database(), t);
+	}
+	m_model->refreshQuery();
+
+}
+
 void BrowserWidget::picSelectedInfo()
 {
 
-	qDebug() << getCurrentSelection();
 	const Picture *pic = getPictureAt(getCurrentSelection());
 	ImageInfoDialog *info = new ImageInfoDialog(pic->fullpath(m_gallery));
 	info->setAttribute(Qt::WA_DeleteOnClose, true);
@@ -91,12 +117,41 @@ void BrowserWidget::picSelectedInfo()
 
 void BrowserWidget::picSelectedShow()
 {
-
+	picSelectedSetHidden(false);
 }
 
 void BrowserWidget::picSelectedHide()
 {
+	picSelectedSetHidden(true);
+}
 
+void BrowserWidget::picSelectedSetHidden(bool hidden)
+{
+	QList<Picture> list = m_model->pictures(m_view->selectionModel()->selectedRows());
+	for(int i=0;i<list.count();++i)
+		list[i].setHidden(m_gallery->database(), hidden);
+	m_model->refreshQuery();
+}
+
+void BrowserWidget::picSelectedDelete()
+{
+	QModelIndexList sel = m_view->selectionModel()->selectedRows();
+
+	QMessageBox box(QMessageBox::Question, tr("Delete"), tr("Permanently delete %1 picture(s)?").arg(sel.count()), QMessageBox::Yes|QMessageBox::No);
+	box.setDefaultButton(QMessageBox::No);
+
+	QList<Picture> deletelist = m_model->pictures(sel);
+	QString deletestr;
+	foreach(const Picture& p, deletelist) {
+		deletestr += p.relativeName() + "\n";
+	}
+	box.setDetailedText(tr("To be deleted:") + "\n" + deletestr);
+
+	if(box.exec()==QMessageBox::Yes) {
+		for(int i=0;i<deletelist.count();++i)
+			deletelist[i].deleteFile(m_gallery);
+		m_model->refreshQuery();
+	}
 }
 
 void BrowserWidget::openPicture(const QModelIndex& index)
@@ -104,6 +159,12 @@ void BrowserWidget::openPicture(const QModelIndex& index)
 	const Picture *pic = m_model->pictureAt(index.row());
 	if(pic!=0)
 		emit pictureSelected(*pic);
+}
+
+void BrowserWidget::setQuery(const QString& query)
+{
+	m_searchbox->setText(query);
+	updateQuery();
 }
 
 void BrowserWidget::updateQuery()

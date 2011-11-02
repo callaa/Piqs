@@ -14,6 +14,8 @@ TagImplications::TagImplications()
 TagImplications TagImplications::load(Database *database)
 {
 	TagImplications ti;
+
+	// Read rules from the database
 	QSqlQuery q("SELECT rule, tags FROM tagrule ORDER BY ruleorder ASC", database->get());
 	while(q.next()) {
 		TagQuery query = TagQuery(q.value(0).toString());
@@ -23,9 +25,19 @@ TagImplications TagImplications::load(Database *database)
 	}
 	q.finish();
 
-	for(QList<TagImplication>::iterator i=ti.m_rules.begin();i!=ti.m_rules.end();++i) {
-		i->query.queryInit(database->tags());
-		i->idset = TagIdSet(i->tagset, database->tags());
+	// Initialize rules and removed invalid ones
+	// Ideally, there should be no bad rules in the database, but better
+	// safe than sorry.
+	QMutableListIterator<TagImplication> iterator(ti.m_rules);
+	while(iterator.hasNext()) {
+		TagImplication &i = iterator.next();
+		i.query.queryInit(database->tags());
+		if(i.query.isError()) {
+			qDebug() << "Bad tag rule:" << i.query;
+			iterator.remove();
+		} else {
+			i.idset = TagIdSet(i.tagset, database->tags());
+		}
 	}
 
 	return ti;
@@ -56,7 +68,7 @@ void TagImplications::applyRule(TagIdSet &tagset, const TagMatchResults &results
 
 		// Other tags go to the sets matched by the query
 		for(int i=0;i<qMin(newtags.sets(), results.tagsets.count());++i) {
-			tagset.insertTags(newtags.tags(i), results.tagsets.at(i));
+			tagset.insertTags(newtags.tags(i+1), results.tagsets.at(i));
 		}
 	} else {
 		// Rule does not contain set. If tagsets is empty, rule matched cross-set

@@ -132,6 +132,12 @@
    </item>
    <item>
     <widget class="QLineEdit" name="alltags">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="acceptDrops">
+      <bool>false</bool>
+     </property>
      <property name="readOnly">
       <bool>true</bool>
      </property>
@@ -145,12 +151,12 @@
  <tabstops>
   <tabstop>titleedit</tabstop>
   <tabstop>tagedit</tabstop>
+  <tabstop>nextbutton</tabstop>
+  <tabstop>prevbutton</tabstop>
   <tabstop>origsizebutton</tabstop>
   <tabstop>fitbutton</tabstop>
   <tabstop>zoominbutton</tabstop>
   <tabstop>zoomoutbutton</tabstop>
-  <tabstop>prevbutton</tabstop>
-  <tabstop>nextbutton</tabstop>
   <tabstop>view</tabstop>
   <tabstop>alltags</tabstop>
  </tabstops>

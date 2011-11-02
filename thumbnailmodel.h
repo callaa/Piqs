@@ -30,8 +30,17 @@ public:
 	//! Get the picture at the given index
 	const Picture *pictureAt(int index) const;
 
+	/**
+	  \brief Get a list of pictures
+
+	  Use this method for making changes that may alter the underlying view, e.g.
+	  changing visibility, tags, deleting, etc.
+	  Remember to call refreshQuery() afterwards!
+	  */
+	QList<Picture> pictures(const QModelIndexList& list);
+
 	//! Remove the picture at index from the cache
-	void uncache(int index);
+	void uncache(int index, bool removed=false);
 
 	//! Set the query string and filter the view
 	void setQuery(SpecialQuery query);

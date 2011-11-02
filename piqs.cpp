@@ -14,6 +14,7 @@
 #include "imageview.h"
 #include "picture.h"
 #include "tagdialog.h"
+#include "taglistdialog.h"
 #include "slideshowoptions.h"
 
 #include "rescandialog.h"
@@ -31,6 +32,7 @@ Piqs::Piqs(QWidget *parent)
 	filemenu->addSeparator();
 	filemenu->addAction(m_act_rescan);
 	filemenu->addAction(m_act_tagrules);
+	filemenu->addAction(m_act_taglist);
 	filemenu->addSeparator();
 	filemenu->addAction(m_act_exit);
 
@@ -91,12 +93,23 @@ void Piqs::showTagrules()
 	dialog->show();
 }
 
+void Piqs::showTaglist()
+{
+	TagListDialog *dialog = new TagListDialog(m_gallery->database(), this);
+	connect(dialog, SIGNAL(query(QString)), m_browser, SLOT(setQuery(QString)));
+	connect(dialog, SIGNAL(query(QString)), this, SLOT(showBrowser()));
+	dialog->setAttribute(Qt::WA_DeleteOnClose, true);
+	dialog->setModal(true);
+	dialog->show();
+}
+
 void Piqs::initActions()
 {
 	m_act_open = makeAction(tr("&Open..."), "document-open", QKeySequence::Open);
 	m_act_open->setDisabled(true); // TODO
 	m_act_rescan = makeAction(tr("Rescan"), "edit-redo");
 	m_act_tagrules = makeAction(tr("&Tag rules..."), "configure");
+	m_act_taglist = makeAction(tr("Tag list..."), 0);
 	m_act_exit = makeAction(tr("E&xit"), "application-exit", QKeySequence::Quit);
 
 	m_act_exit->setMenuRole(QAction::QuitRole);
@@ -104,6 +117,7 @@ void Piqs::initActions()
 	connect(m_act_rescan, SIGNAL(triggered()), this, SLOT(rescan()));
 	connect(m_act_exit, SIGNAL(triggered()), this, SLOT(close()));
 	connect(m_act_tagrules, SIGNAL(triggered()), this, SLOT(showTagrules()));
+	connect(m_act_taglist, SIGNAL(triggered()), this, SLOT(showTaglist()));
 
 	m_act_slideshow = makeAction(tr("&Start"), "media-playback-start", QKeySequence("F9"));
 	m_act_slideselected = makeAction(tr("Limit to selection"), 0);
@@ -138,7 +152,6 @@ void Piqs::closeEvent(QCloseEvent *e)
 
 void Piqs::showPicture(const Picture &picture)
 {
-	qDebug() << "Show" << picture.id();
 	m_viewstack->setCurrentIndex(1);
 	m_viewer->setPicture(picture);
 }

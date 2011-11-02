@@ -234,7 +234,6 @@ public:
 		Q_UNUSED(limitset); // Although the grammar allows nested tag sets, other limitations prevent their use.
 		for(int i=1;i<=tags.sets();++i) {
 			if(!results.tagsets.contains(i)) {
-				// TODO ability to match any set
 				bool m = m_node->match(tags, i, results);
 				if(m) {
 					results.tagsets.append(i);
@@ -268,6 +267,7 @@ public:
 
 	void queryInit(Tags *tags)
 	{
+		// Tags starting with ":" have special meaning
 		if(m_value.at(0)==':')
 			m_id = -1;
 		else

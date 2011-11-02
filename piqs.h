@@ -38,6 +38,9 @@ public slots:
 	//! Show the tag rules dialog
 	void showTagrules();
 
+	//! Show the tag list dialog
+	void showTaglist();
+
 	//! Start a slideshow
 	void startSlideshow();
 
@@ -68,6 +71,7 @@ private:
 	QAction *m_act_open;
 	QAction *m_act_rescan;
 	QAction *m_act_tagrules;
+	QAction *m_act_taglist;
 	QAction *m_act_exit;
 
 	QAction *m_act_slideshow;

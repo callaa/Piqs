@@ -36,6 +36,12 @@ public:
 	//! Get the picture rotation angle in degrees
 	int rotation() const { return m_rotation; }
 
+	//! Hide or show the picture
+	void setHidden(Database *db, bool hidden);
+
+	//! Delete this file from the database and the file system
+	void deleteFile(Gallery *gallery);
+
 	//! Change picture tag string and save changes to the database.
 	void saveTags(Database *db, const QString& tags);
 

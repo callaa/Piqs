@@ -31,7 +31,8 @@ SOURCES += main.cpp\
     tags.cpp \
     tagcompleter.cpp \
     tagrules.cpp \
-    imageinfodialog.cpp
+    imageinfodialog.cpp \
+    taglistdialog.cpp
 
 HEADERS  += piqs.h \
     thumbnailmodel.h \
@@ -53,11 +54,13 @@ HEADERS  += piqs.h \
     tags.h \
     tagcompleter.h \
     tagrules.h \
-    imageinfodialog.h
+    imageinfodialog.h \
+    taglistdialog.h
 
 FORMS += \
     imageview.ui \
     rescandialog.ui \
     tagdialog.ui \
     slideshowoptions.ui \
-    imageinfodialog.ui
+    imageinfodialog.ui \
+    taglistdialog.ui

@@ -22,7 +22,7 @@ ImageView::ImageView(Gallery *gallery, QWidget *parent) :
 	m_ui->view->setScene(m_scene);
 
 	m_ui->tagedit->setValidator(new TagValidator());
-	m_ui->tagedit->setCompleter(new TagCompleter(gallery->database()->tags()));
+	//m_ui->tagedit->setCompleter(new TagCompleter(gallery->database()->tags()));
 
 	// Set action button icons
 	m_ui->fitbutton->setIcon(QIcon::fromTheme("zoom-fit-best"));

@@ -41,6 +41,9 @@ signals:
 	void pictureSelected(const Picture& picture);
 
 public slots:
+	//! Make a new query
+	void setQuery(const QString& query);
+
 	//! Emit pictureSelected for the picture at index
 	void openPicture(const QModelIndex& index);
 
@@ -56,9 +59,12 @@ public slots:
 protected slots:
 	void pictureContextMenu(const QPoint& point);
 
+	void picSelectedAddtags();
 	void picSelectedInfo();
 	void picSelectedShow();
 	void picSelectedHide();
+	void picSelectedDelete();
+	void picSelectedSetHidden(bool hidden);
 
 private:
 	Gallery *m_gallery;

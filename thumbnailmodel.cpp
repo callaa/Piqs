@@ -1,7 +1,6 @@
 #include <QDir>
 #include <QDebug>
 #include <QSqlQuery>
-#include <QSqlError>
 
 #include "thumbnailmodel.h"
 #include "iconcache.h"
@@ -41,10 +40,10 @@ void ThumbnailModel::setQuery(SpecialQuery query)
 
 	QSqlQuery q(m_gallery->database()->get());
 	if(!q.exec("DROP VIEW IF EXISTS t_picview"))
-		qDebug() << "Couldn't drop old t_picview:" << q.lastError().text();
+		Database::showError("Couldn't drop old t_picview", q);
 
 	if(!q.exec("CREATE TEMP VIEW t_picview AS " + sql))
-		qDebug() << "Couldn't create new t_picivew:" << q.lastError().text();
+		Database::showError("Couldn't create new t_picview", q);
 
 	endResetModel();
 }
@@ -75,10 +74,10 @@ void ThumbnailModel::setQuery(const TagQuery &query)
 
 	// Store the filtered list
 	if(!q.exec("DROP TABLE IF EXISTS t_query"))
-		qDebug() << "Couldn't drop old t_query:" << q.lastError().text();
+		Database::showError("Couldn't drop old t_query", q);
 
 	if(!q.exec("CREATE TEMP TABLE t_query (picid INTEGER NOT NULL PRIMARY KEY)"))
-		qDebug() << "Couldn't create new t_query:" << q.lastError().text();
+		Database::showError("Couldn't create new t_query", q);
 
 	q.prepare("INSERT INTO t_query VALUES (?)");
 	foreach(int id, shortlist) {
@@ -88,10 +87,10 @@ void ThumbnailModel::setQuery(const TagQuery &query)
 
 	// Select filtered list view
 	if(!q.exec("DROP VIEW IF EXISTS t_picview"))
-		qDebug() << "Couldn't drop old t_picview:" << q.lastError().text();
+		Database::showError("Couldn't drop old t_picview", q);
 
 	if(!q.exec("CREATE TEMP VIEW t_picview AS SELECT * FROM picture JOIN t_query USING (picid) WHERE hidden=0 ORDER BY picid ASC"))
-		qDebug() << "Couldn't create new t_picivew:" << q.lastError().text();
+		Database::showError("Couldn't create new t_picview", q);
 
 	endResetModel();
 }
@@ -107,9 +106,18 @@ void ThumbnailModel::refreshQuery()
 	endResetModel();
 }
 
-void ThumbnailModel::uncache(int index)
+void ThumbnailModel::uncache(int index, bool removed)
 {
-	m_cache.remove(index);
+
+	if(removed) {
+		this->beginRemoveRows(QModelIndex(), index, index);
+		m_cache.clear();
+		m_count--;
+		this->beginRemoveRows(QModelIndex(), index, index);
+	} else {
+		m_cache.remove(index);
+	}
+
 }
 
 int ThumbnailModel::rowCount(const QModelIndex &parent) const
@@ -121,7 +129,7 @@ int ThumbnailModel::rowCount(const QModelIndex &parent) const
 		if(q.next())
 			m_count = q.value(0).toInt();
 		else
-			qDebug() << "Couldn't get picture count:" << q.lastError().text();
+			qDebug() << "Couldn't get picture count!";
 	}
 	return m_count;
 }
@@ -160,8 +168,16 @@ const Picture *ThumbnailModel::pictureAt(int index) const {
 				picture=p;
 		}
 		if(picture==0)
-			qDebug() << "Couldn't get picture:" << q.lastError().text();
+			qDebug() << "Couldn't get picture at index" << index;
 	}
 
 	return picture;
+}
+
+QList<Picture> ThumbnailModel::pictures(const QModelIndexList& list)
+{
+	QList<Picture> pictures;
+	for(int i=0;i<list.count();++i)
+		pictures << *pictureAt(list.at(i).row());
+	return pictures;
 }
