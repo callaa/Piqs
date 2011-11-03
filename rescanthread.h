@@ -17,15 +17,25 @@ public:
 	void run();
 
 signals:
+	void statusChanged(const QString& status);
 	void filesAdded(int count);
+	void foldersSearched(int count);
+	void missingFound(int count);
+	void dupesFound(int count);
+	void movesFound(int count);
 
 public slots:
 	void abortScan();
 
 private:
-	void rescan(const QStringList& filefilter, const QString& prefix, const QDir& root, QSqlQuery& query);
+	void rescan(const QStringList& filefilter, const QString& prefix, const QDir& root, QSqlQuery& insertquery, QSqlQuery& updatequery);
+	bool periodElapsed();
+
 	const Gallery *m_gallery;
-	int m_count;
+
+	int m_filecount;
+	int m_foldercount;
+
 	bool m_abortflag;
 	qint64 m_time;
 

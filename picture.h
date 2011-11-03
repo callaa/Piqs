@@ -13,7 +13,7 @@ class Picture
 {
 public:
 	Picture();
-	Picture(int id, const QString& filename, bool hidden, const QString& title, const QString& tags, int rotation);
+	Picture(int id, const QString& filename, bool hidden, const QString& title, const QString& tags, int rotation, const QString& hash);
 
 	//! Get the internal ID of this picture
 	int id() const { return m_id; }
@@ -32,6 +32,9 @@ public:
 
 	//! Get the tag string (user inputted tags)
 	QString tagString() const { return m_tags; }
+
+	//! Get the hash of the image file contents
+	QString hash() const { return m_hash; }
 
 	//! Get the picture rotation angle in degrees
 	int rotation() const { return m_rotation; }
@@ -55,6 +58,7 @@ private:
 	QString m_title;
 	QString m_tags;
 	int m_rotation;
+	QString m_hash;
 };
 
 Q_DECLARE_METATYPE(Picture)

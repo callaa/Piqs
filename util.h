@@ -12,6 +12,9 @@ public:
 
 	//! Remove illegal characters from a tag name
 	static QString cleanTagName(const QString& name);
+
+	//! Calculate a file's SHA-1 hash
+	static QString hashFile(const QString& path);
 };
 
 #endif // UTIL_H

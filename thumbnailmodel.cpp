@@ -28,6 +28,12 @@ void ThumbnailModel::setQuery(SpecialQuery query)
 	case QUERY_HIDDEN:
 		sql = "SELECT * FROM picture WHERE hidden=1 ORDER BY picid ASC";
 		break;
+	case QUERY_MISSING:
+		sql = "SELECT * FROM picture WHERE found=0 ORDER BY picid ASC";
+		break;
+	case QUERY_DUPLICATE:
+		sql = "SELECT * FROM picture JOIN duplicate USING (picid) ORDER BY picid ASC";
+		break;
 	default:
 		qFatal("Unhandled query mode");
 		return;
@@ -158,11 +164,11 @@ const Picture *ThumbnailModel::pictureAt(int index) const {
 	Picture *picture = m_cache[index];
 	if(picture==0) {
 		// If not found in cache, load some
-		QSqlQuery q("SELECT picid, filename, hidden, title, tags, rotation FROM t_picview LIMIT 10 OFFSET " + QString::number(index), m_gallery->database()->get());
+		QSqlQuery q("SELECT picid, filename, hidden, title, tags, rotation, hash FROM t_picview LIMIT 10 OFFSET " + QString::number(index), m_gallery->database()->get());
 
 		int i = index;
 		while(q.next()) {
-			Picture *p = new Picture(q.value(0).toInt(), q.value(1).toString(), q.value(2).toBool(), q.value(3).toString(), q.value(4).toString(), q.value(5).toInt());
+			Picture *p = new Picture(q.value(0).toInt(), q.value(1).toString(), q.value(2).toBool(), q.value(3).toString(), q.value(4).toString(), q.value(5).toInt(), q.value(6).toString());
 			m_cache.insert(i++, p);
 			if(picture==0)
 				picture=p;

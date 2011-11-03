@@ -7,12 +7,15 @@ namespace Ui {
     class ImageInfoDialog;
 }
 
+class Gallery;
+class Picture;
+
 class ImageInfoDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-	explicit ImageInfoDialog(const QString& file, QWidget *parent = 0);
+	explicit ImageInfoDialog(const Gallery *gallery, const Picture& picture, QWidget *parent = 0);
     ~ImageInfoDialog();
 
 private:

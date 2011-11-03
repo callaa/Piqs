@@ -19,7 +19,6 @@ public:
 
 public slots:
 	void rescan();
-	void filesProcessed(int count);
 	void filesDone();
 
 signals:

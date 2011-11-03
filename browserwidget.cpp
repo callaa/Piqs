@@ -110,7 +110,7 @@ void BrowserWidget::picSelectedInfo()
 {
 
 	const Picture *pic = getPictureAt(getCurrentSelection());
-	ImageInfoDialog *info = new ImageInfoDialog(pic->fullpath(m_gallery));
+	ImageInfoDialog *info = new ImageInfoDialog(m_gallery, *pic);
 	info->setAttribute(Qt::WA_DeleteOnClose, true);
 	info->show();
 }
@@ -184,6 +184,10 @@ void BrowserWidget::updateQuery()
 			m_model->setQuery(ThumbnailModel::QUERY_NEW);
 		else if(search == ":hidden")
 			m_model->setQuery(ThumbnailModel::QUERY_HIDDEN);
+		else if(search == ":missing")
+			m_model->setQuery(ThumbnailModel::QUERY_MISSING);
+		else if(search == ":duplicate")
+			m_model->setQuery(ThumbnailModel::QUERY_DUPLICATE);
 		else
 			ok = false;
 	} else {

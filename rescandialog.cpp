@@ -28,7 +28,13 @@ RescanDialog::~RescanDialog()
 void RescanDialog::rescan()
 {
 	RescanThread *thread = new RescanThread(m_gallery, this);
-	connect(thread, SIGNAL(filesAdded(int)), this, SLOT(filesProcessed(int)));
+	connect(thread, SIGNAL(statusChanged(QString)), m_ui->statuslabel, SLOT(setText(QString)));
+	connect(thread, SIGNAL(filesAdded(int)), m_ui->picturecount, SLOT(display(int)));
+	connect(thread, SIGNAL(foldersSearched(int)), m_ui->foldercount, SLOT(display(int)));
+	connect(thread, SIGNAL(missingFound(int)), m_ui->missingcount, SLOT(display(int)));
+	connect(thread, SIGNAL(dupesFound(int)), m_ui->dupecount, SLOT(display(int)));
+	connect(thread, SIGNAL(movesFound(int)), m_ui->movecount, SLOT(display(int)));
+
 	connect(thread, SIGNAL(finished()), this, SLOT(filesDone()));
 	connect(thread, SIGNAL(finished()), this, SIGNAL(rescanComplete()));
 	connect(this, SIGNAL(rejected()), thread, SLOT(abortScan()));
@@ -37,14 +43,8 @@ void RescanDialog::rescan()
 	thread->start();
 }
 
-void RescanDialog::filesProcessed(int count)
-{
-	m_ui->picturecount->display(count);
-}
-
 void RescanDialog::filesDone()
 {
-	m_ui->statuslabel->setText(tr("Done."));
 	m_ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
 	m_ui->buttonBox->button(QDialogButtonBox::Abort)->setEnabled(false);
 }

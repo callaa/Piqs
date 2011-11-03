@@ -8,13 +8,13 @@
 #include "iconcache.h"
 
 Picture::Picture()
-	: m_id(0), m_relativename(QString()), m_hidden(false), m_title(QString()), m_tags(QString()), m_rotation(0)
+	: m_id(0), m_relativename(QString()), m_hidden(false), m_title(QString()), m_tags(QString()), m_rotation(0), m_hash(QString())
 {
 
 }
 
-Picture::Picture(int id, const QString& filename, bool hidden, const QString& title, const QString& tags, int rotation)
-	: m_id(id), m_relativename(filename), m_hidden(hidden), m_title(title), m_tags(tags), m_rotation(rotation)
+Picture::Picture(int id, const QString& filename, bool hidden, const QString& title, const QString& tags, int rotation, const QString& hash)
+	: m_id(id), m_relativename(filename), m_hidden(hidden), m_title(title), m_tags(tags), m_rotation(rotation), m_hash(hash)
 {
 }
 

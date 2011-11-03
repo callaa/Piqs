@@ -1,4 +1,6 @@
 #include <QRegExp>
+#include <QFile>
+#include <QCryptographicHash>
 
 #include "util.h"
 
@@ -58,4 +60,21 @@ QString Util::cleanTagName(const QString& name)
 {
 	static QRegExp badchars("[,|()[\\]!]");
 	return name.simplified().toLower().replace(badchars, "");
+}
+
+QString Util::hashFile(const QString& path)
+{
+	QFile file(path);
+	if(!file.open(QFile::ReadOnly))
+		return QString();
+
+	QCryptographicHash hash(QCryptographicHash::Sha1);
+
+	char buffer[4096];
+	int r;
+	while((r=file.read(buffer, sizeof buffer))>0) {
+		hash.addData(buffer, r);
+	}
+
+	return QString::fromLatin1(hash.result().toHex());
 }

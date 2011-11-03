@@ -37,8 +37,21 @@ Database::Database(const QDir& metadir, QObject *parent) :
 				   "hidden INTEGER NOT NULL,"
 				   "title TEXT NOT NULL,"
 				   "tags TEXT NOT NULL,"
-				   "rotation INTEGER NOT NULL"
+				   "rotation INTEGER NOT NULL,"
+				   "found INTEGER NOT NULL,"
+				   "hash TEXT NOT NULL"
 				   ")");
+		}
+
+		// List of duplicate images
+		if(!tables.contains("duplicate")) {
+			qDebug() << "Duplicate table does not exist. Creating...";
+			QSqlQuery q(m_db);
+			if(!q.exec("CREATE TABLE duplicate ("
+				   "picid INTEGER PRIMARY KEY NOT NULL,"
+				   "FOREIGN KEY (picid) REFERENCES picture ON DELETE CASCADE ON UPDATE CASCADE"
+				   ")"))
+				qDebug() << "Couldn't create table:" << q.lastError().text();
 		}
 
 		m_tags = new Tags(this);

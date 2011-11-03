@@ -19,7 +19,7 @@ class ThumbnailModel : public QAbstractListModel
     Q_OBJECT
 public:
 	//! Special query modes
-	enum SpecialQuery { QUERY_ALL, QUERY_UNTAGGED, QUERY_NEW, QUERY_HIDDEN };
+	enum SpecialQuery { QUERY_ALL, QUERY_UNTAGGED, QUERY_NEW, QUERY_HIDDEN, QUERY_MISSING, QUERY_DUPLICATE };
 
 	ThumbnailModel(const Gallery *gallery, QObject *parent = 0);
 
