@@ -18,14 +18,18 @@ IconCache& IconCache::getInstance()
 }
 
 static QString cachefilepath(const Gallery *gallery, const Picture &picture) {
-	return gallery->metadir().absoluteFilePath(
-				QString::number(picture.id()/10000) + QDir::separator() + QString::number(picture.id()/100) + QDir::separator() +
-				QString::number(picture.id()) + ".jpg");;
+	if(picture.hash().isEmpty())
+		return QString();
+
+	return gallery->metadir().absoluteFilePath(picture.hash() + ".png");
 }
 
 QPixmap IconCache::get(const Gallery *gallery, const Picture &picture)
 {
 	const QString cachefile = cachefilepath(gallery, picture);
+
+	if(cachefile.isEmpty())
+		return m_placeholder;
 
 	QPixmap *icon = m_cache[cachefile];
 
@@ -48,7 +52,7 @@ QPixmap IconCache::get(const Gallery *gallery, const Picture &picture)
 				m_loading.insert(cachefile);
 				m_lock.unlock();
 
-				QtConcurrent::run(this, &IconCache::cacheImage, gallery, picture.relativeName(), cachefile);
+				QtConcurrent::run(this, &IconCache::cacheImage, picture.fullpath(gallery), cachefile);
 			} else {
 				m_lock.unlock();;
 			}
@@ -65,23 +69,31 @@ void IconCache::remove(const Gallery *gallery, const Picture& picture)
 	m_cache.remove(cachefile);
 }
 
-void IconCache::cacheImage(const Gallery *gallery, const QString &image, const QString& cachefile)
+void IconCache::cacheImage(const QString &imagefile, const QString& cachefile)
 {
-	QString src = gallery->root().absoluteFilePath(image);
-	QImage img(src);
+	QImage img(imagefile);
 	QImage icon;
+
+	// If source image is larger than thumbnail size (as is usual),
+	// scale down
 	if(img.width() > ICON_SIZE || img.height() > ICON_SIZE) {
-		icon = img.scaled(ICON_SIZE, ICON_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-	} else {
-		icon = QImage(ICON_SIZE, ICON_SIZE, QImage::Format_RGB32);
-		QPainter painter(&icon);
-		painter.fillRect(0, 0, ICON_SIZE, ICON_SIZE, Qt::white);
-		painter.drawImage(ICON_SIZE/2 - img.width()/2, ICON_SIZE/2 - img.height()/2, img);
+		img = img.scaled(ICON_SIZE, ICON_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 	}
 
-	gallery->metadir().mkpath(QFileInfo(cachefile).dir().path());
+	// Square thumbnail if not already
+	if(img.width() != ICON_SIZE || img.height() != ICON_SIZE) {
+		icon = QImage(ICON_SIZE, ICON_SIZE, QImage::Format_ARGB32);
+		icon.fill(0);
+		QPainter painter(&icon);
+		painter.drawImage(ICON_SIZE/2 - img.width()/2, ICON_SIZE/2 - img.height()/2, img);
+	} else {
+		icon = img;
+	}
+
+	//gallery->metadir().mkpath(QFileInfo(cachefile).dir().path());
 
 	icon.save(cachefile);
+
 	m_lock.lock();
 	m_loading.remove(cachefile);
 	m_lock.unlock();

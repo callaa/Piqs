@@ -36,7 +36,7 @@ private:
 	IconCache& operator=(const IconCache& ic);
 
 	//! Generate a thumbnail image and save it to the file system
-	void cacheImage(const Gallery *gallery, const QString &image, const QString& cachefile);
+	void cacheImage(const QString &imagefile, const QString& cachefile);
 
 	//! Cached icon pixmaps
 	QCache<QString, QPixmap> m_cache;
