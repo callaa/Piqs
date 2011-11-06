@@ -1,6 +1,7 @@
 #include <QDebug>
 #include <QGraphicsPixmapItem>
 #include <QKeyEvent>
+#include <QMenu>
 
 #include "imageview.h"
 #include "ui_imageview.h"
@@ -10,6 +11,7 @@
 #include "tagset.h"
 #include "tagvalidator.h"
 #include "tagcompleter.h"
+#include "imageinfodialog.h"
 
 ImageView::ImageView(Gallery *gallery, QWidget *parent) :
     QWidget(parent),
@@ -24,22 +26,61 @@ ImageView::ImageView(Gallery *gallery, QWidget *parent) :
 	m_ui->tagedit->setValidator(new TagValidator());
 	//m_ui->tagedit->setCompleter(new TagCompleter(gallery->database()->tags()));
 
-	// Set action button icons
-	m_ui->fitbutton->setIcon(QIcon::fromTheme("zoom-fit-best"));
-	m_ui->origsizebutton->setIcon(QIcon::fromTheme("zoom-original"));
-	m_ui->zoominbutton->setIcon(QIcon::fromTheme("zoom-in"));
-	m_ui->zoomoutbutton->setIcon(QIcon::fromTheme("zoom-out"));
+	// Create actions
+	QAction *next = new QAction(QIcon::fromTheme("go-next"), tr("Next"), this);
+	next->setShortcut(QKeySequence("Ctrl+."));
 
-	m_ui->prevbutton->setIcon(QIcon::fromTheme("go-previous"));
-	m_ui->nextbutton->setIcon(QIcon::fromTheme("go-next"));
+	QAction *prev = new QAction(QIcon::fromTheme("go-previous"), tr("Previous"), this);
+	prev->setShortcut(QKeySequence("Ctrl+,"));
 
-	connect(m_ui->fitbutton, SIGNAL(clicked(bool)), this, SLOT(zoomfit(bool)));
-	connect(m_ui->origsizebutton, SIGNAL(clicked()), this, SLOT(zoomorig()));
-	connect(m_ui->zoominbutton, SIGNAL(clicked()), this, SLOT(zoomin()));
-	connect(m_ui->zoomoutbutton, SIGNAL(clicked()), this, SLOT(zoomout()));
-	connect(m_ui->nextbutton, SIGNAL(clicked()), this, SIGNAL(requestNext()));
-	connect(m_ui->prevbutton, SIGNAL(clicked()), this, SIGNAL(requestPrev()));
+	QAction *zoomin = new QAction(QIcon::fromTheme("zoom-in"), tr("Zoom in"), this);
+	zoomin->setShortcut(QKeySequence("Ctrl++"));
 
+	QAction *zoomout = new QAction(QIcon::fromTheme("zoom-out"), tr("Zoom out"), this);
+	zoomout->setShortcut(QKeySequence("Ctrl+-"));
+
+	QAction *zoomorig = new QAction(QIcon::fromTheme("zoom-original"), tr("Original size"), this);
+	zoomorig->setShortcut(QKeySequence("Ctrl+0"));
+
+	m_autofit = new QAction(QIcon::fromTheme("zoom-fit-best"), tr("Fit to screen"), this);
+	m_autofit->setShortcut(QKeySequence("Ctrl+1"));
+	m_autofit->setCheckable(true);
+	
+	QAction *imginfo = new QAction(tr("Information..."), this);
+
+	// Connect actions
+	connect(next, SIGNAL(triggered()), this, SIGNAL(requestNext()));
+	connect(prev, SIGNAL(triggered()), this, SIGNAL(requestPrev()));
+
+	connect(zoomin, SIGNAL(triggered()), this, SLOT(zoomin()));
+	connect(zoomout, SIGNAL(triggered()), this, SLOT(zoomout()));
+	connect(m_autofit, SIGNAL(triggered(bool)), this, SLOT(zoomfit(bool)));
+	connect(zoomorig, SIGNAL(triggered()), this, SLOT(zoomorig()));
+	connect(imginfo, SIGNAL(triggered()), this, SLOT(showInfo()));
+
+	// Create image context menu
+	m_imgctxmenu = new QMenu(this);
+	m_imgctxmenu->addAction(zoomin);
+	m_imgctxmenu->addAction(zoomout);
+	m_imgctxmenu->addAction(zoomorig);
+	m_imgctxmenu->addAction(m_autofit);
+	m_imgctxmenu->addSeparator();
+	m_imgctxmenu->addAction(next);
+	m_imgctxmenu->addAction(prev);
+	m_imgctxmenu->addAction(imginfo);
+
+	m_ui->view->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(m_ui->view, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(pictureContextMenu(QPoint)));
+
+	// Connect actions to buttons
+	m_ui->nextbutton->setDefaultAction(next);
+	m_ui->prevbutton->setDefaultAction(prev);
+	m_ui->zoominbutton->setDefaultAction(zoomin);
+	m_ui->zoomoutbutton->setDefaultAction(zoomout);
+	m_ui->fitbutton->setDefaultAction(m_autofit);
+	m_ui->origsizebutton->setDefaultAction(zoomorig);
+
+	// Connect input edit events
 	connect(m_ui->titleedit, SIGNAL(returnPressed()), this, SLOT(saveTitle()));
 	connect(m_ui->tagedit, SIGNAL(returnPressed()), this, SLOT(saveTags()));
 }
@@ -49,9 +90,21 @@ ImageView::~ImageView()
 	delete m_ui;
 }
 
+void ImageView::pictureContextMenu(const QPoint& point)
+{
+	m_imgctxmenu->popup(m_ui->view->mapToGlobal(point));
+}
+
+void ImageView::showInfo()
+{
+	ImageInfoDialog *info = new ImageInfoDialog(m_gallery, m_picture);
+	info->setAttribute(Qt::WA_DeleteOnClose, true);
+	info->show();
+}
+
 bool ImageView::isAutofit() const
 {
-	return m_ui->fitbutton->isChecked();
+	return m_autofit->isChecked();
 }
 
 void ImageView::setPicture(const Picture &picture)
@@ -100,13 +153,13 @@ void ImageView::resizeEvent(QResizeEvent *e)
 
 void ImageView::zoomin()
 {
-	m_ui->fitbutton->setChecked(false);
+	m_autofit->setChecked(false);
 	m_ui->view->scale(2.0, 2.0);
 }
 
 void ImageView::zoomout()
 {
-	m_ui->fitbutton->setChecked(false);
+	m_autofit->setChecked(false);
 	m_ui->view->scale(0.5, 0.5);
 }
 
@@ -120,7 +173,7 @@ void ImageView::zoomfit(bool checked)
 
 void ImageView::setAutofit(bool fit)
 {
-	m_ui->fitbutton->setChecked(fit);
+	m_autofit->setChecked(fit);
 }
 
 
@@ -141,12 +194,16 @@ void ImageView::scaleToFit()
 	else
 		scale = vs.width() / is.width();
 
+	// Only downscale
+	if(scale > 1.0)
+		scale = 1.0;
+
 	m_ui->view->setTransform(QTransform::fromScale(scale, scale));
 }
 
 
 void ImageView::zoomorig()
 {
-	m_ui->fitbutton->setChecked(false);
+	m_autofit->setChecked(false);
 	m_ui->view->resetTransform();
 }

@@ -43,7 +43,7 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	QAction *act_hide = new QAction(tr("Hide"), this);
 	QAction *act_show = new QAction(tr("Show"), this);
 	QAction *act_delete = new QAction(tr("Delete..."), this);
-	QAction *act_info = new QAction(tr("Information"), this);
+	QAction *act_info = new QAction(tr("Information..."), this);
 
 	m_viewctxmenu->addAction(act_addtags);
 	m_viewctxmenu->addAction(act_hide);

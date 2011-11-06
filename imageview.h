@@ -6,6 +6,7 @@
 #include "picture.h"
 
 class QGraphicsScene;
+class QMenu;
 class Gallery;
 
 namespace Ui {
@@ -42,6 +43,12 @@ public slots:
 	//! Save changes to tags
 	void saveTags();
 
+	//! Show image info dialog
+	void showInfo();
+
+protected slots:
+	void pictureContextMenu(const QPoint& point);
+
 signals:
 	//! User wants to get out of this view
 	void exitView();
@@ -62,11 +69,13 @@ protected:
 private:
 	void scaleToFit();
 
+	QAction *m_autofit;
+
 	Ui::ImageView *m_ui;
 	Gallery *m_gallery;
 	Picture m_picture;
 	QGraphicsScene *m_scene;
-
+	QMenu *m_imgctxmenu;
 };
 
 #endif // IMAGEVIEW_H
