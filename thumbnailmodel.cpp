@@ -6,6 +6,7 @@
 #include "iconcache.h"
 #include "gallery.h"
 #include "tagquery.h"
+#include "imagemimedata.h"
 
 ThumbnailModel::ThumbnailModel(const Gallery *gallery, QObject *parent) :
 	QAbstractListModel(parent), m_gallery(gallery), m_count(-1), m_cache(1000)
@@ -158,6 +159,28 @@ QVariant ThumbnailModel::data(const QModelIndex &index, int role) const
 			return IconCache::getInstance().get(m_gallery, *picture);
 	}
 	return QVariant();
+}
+
+Qt::ItemFlags ThumbnailModel::flags(const QModelIndex& index) const
+{
+	Qt::ItemFlags defaultFlags = QAbstractListModel::flags(index);
+	if (index.isValid())
+		return Qt::ItemIsDragEnabled | defaultFlags;
+	else
+		return defaultFlags;
+}
+
+QMimeData *ThumbnailModel::mimeData(const QModelIndexList &indexes) const
+{
+	QStringList imgs;
+	foreach (const QModelIndex &index, indexes) {
+		if (index.isValid()) {
+			imgs << pictureAt(index.row())->fullpath(m_gallery);
+		}
+	}
+	if(!imgs.isEmpty())
+		return new ImageMimeData(imgs);
+	return 0;
 }
 
 const Picture *ThumbnailModel::pictureAt(int index) const {

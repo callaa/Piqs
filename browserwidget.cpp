@@ -34,6 +34,8 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	m_view->setVerticalScrollMode(QListView::ScrollPerPixel);
 	m_view->setHorizontalScrollMode(QListView::ScrollPerPixel);
 	m_view->setSelectionMode(QListView::ExtendedSelection);
+	m_view->setDragEnabled(true);
+	m_view->setDragDropMode(QListView::DragOnly);
 	mainlayout->addWidget(m_view);	
 
 	m_viewctxmenu = new QMenu(this);
@@ -60,7 +62,9 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	connect(m_view, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(pictureContextMenu(QPoint)));
 
 	m_searchbox = new QLineEdit();
+#if QT_VERSION >= 0x040700
 	m_searchbox->setPlaceholderText(tr("Search"));
+#endif
 	m_searchbox->setCompleter(new TagCompleter(m_gallery->database()->tags()));
 
 	new QShortcut(QKeySequence("Ctrl+F"), m_searchbox, SLOT(setFocus()));

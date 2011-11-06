@@ -27,6 +27,10 @@ public:
 
 	QVariant data(const QModelIndex &index, int role) const;
 
+	Qt::ItemFlags flags(const QModelIndex& index) const;
+
+	QMimeData *mimeData(const QModelIndexList &indexes) const;
+
 	//! Get the picture at the given index
 	const Picture *pictureAt(int index) const;
 
