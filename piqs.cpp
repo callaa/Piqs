@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QTimer>
 #include <QFileDialog>
+#include <QDesktopWidget>
 
 #include <cstdlib> // for RAND_MAX
 
@@ -77,7 +78,15 @@ Piqs::Piqs(const QString& root, QWidget *parent)
 		connect(m_viewer, SIGNAL(requestPrev()), this, SLOT(showPreviousPicture()));
 		connect(m_viewer, SIGNAL(changed()), m_browser, SLOT(refreshQuery()));
 
-		restoreGeometry(QByteArray::fromBase64(m_gallery->database()->getSetting("window.geometry").toByteArray()));
+		// Set default window size
+		QByteArray oldgeometry = m_gallery->database()->getSetting("window.geometry").toByteArray();
+		if(oldgeometry.isEmpty()) {
+				QRect screen = QApplication::desktop()->screenGeometry();
+				resize(screen.width() * 2 / 3, screen.height() * 2 / 3);
+		} else {
+			restoreGeometry(QByteArray::fromBase64(oldgeometry));
+		}
+
 		m_viewer->setAutofit(m_gallery->database()->getSetting("viewer.autofit").toBool());
 
 		if(m_gallery->totalCount()==0)
