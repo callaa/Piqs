@@ -53,6 +53,9 @@ public slots:
 	//! Show dialog for opening a new main window instance
 	void showOpenDialog();
 
+protected slots:
+	void queryMenuTriggered(QAction *action);
+
 protected:
 	void closeEvent(QCloseEvent *e);
 
@@ -60,6 +63,8 @@ private:
 	void initActions();
 
 	QAction *makeAction(const QString& title, const char *icon, const QKeySequence& shortcut=QKeySequence());
+
+	QAction *makeQueryAction(const QString& title, const QString& query, const QString& prompt=QString());
 
 	//! Stack of view widgets
 	QStackedWidget *m_viewstack;

@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QMessageBox>
+#include <QInputDialog>
 #include <QMenuBar>
 #include <QListView>
 #include <QStackedWidget>
@@ -41,6 +42,19 @@ Piqs::Piqs(const QString& root, QWidget *parent)
 	filemenu->addAction(m_act_taglist);
 	filemenu->addSeparator();
 	filemenu->addAction(m_act_exit);
+
+	QMenu *querymenu = menuBar()->addMenu(tr("&Query"));
+	querymenu->addAction(makeQueryAction(tr("&All"), ":all"));
+	querymenu->addAction(makeQueryAction(tr("&Untagged"), ":untagged"));
+	querymenu->addAction(makeQueryAction(tr("&New"), ":new"));
+	querymenu->addAction(makeQueryAction(tr("&Hidden"), ":hidden"));
+	querymenu->addAction(makeQueryAction(tr("&Missing"), ":missing"));
+	querymenu->addAction(makeQueryAction(tr("&Duplicates"), ":duplicate"));
+	querymenu->addAction(makeQueryAction(tr("&File..."), ":file(%1)", tr("Filename")));
+	querymenu->addAction(makeQueryAction(tr("&Title..."), ":title(%1)", tr("Title")));
+	querymenu->addAction(makeQueryAction(tr("Ha&sh..."), ":hash(%1)", tr("SHA-1 hash")));
+
+	connect(querymenu, SIGNAL(triggered(QAction*)), this, SLOT(queryMenuTriggered(QAction*)));
 
 	QMenu *slidemenu = menuBar()->addMenu(tr("&Slideshow"));
 	slidemenu->addAction(m_act_slideshow);
@@ -181,13 +195,20 @@ void Piqs::initActions()
 
 QAction *Piqs::makeAction(const QString& title, const char *icon, const QKeySequence& shortcut)
 {
-	QAction *act;
 	QIcon qicon;
 	if(icon)
 			qicon = QIcon::fromTheme(icon);
-	act = new QAction(qicon, title, this);
+	QAction *act = new QAction(qicon, title, this);
 	if(shortcut.isEmpty()==false)
 		act->setShortcut(shortcut);
+	return act;
+}
+
+QAction *Piqs::makeQueryAction(const QString& title, const QString& query, const QString& prompt)
+{
+	QAction *act = new QAction(title, this);
+	act->setProperty("querystring", query);
+	act->setProperty("queryprompt", prompt);
 	return act;
 }
 
@@ -207,6 +228,28 @@ void Piqs::showPicture(const Picture &picture)
 void Piqs::showBrowser()
 {
 	m_viewstack->setCurrentIndex(0);
+}
+
+void Piqs::queryMenuTriggered(QAction *action)
+{
+	QString q = action->property("querystring").toString();
+	if(q.isEmpty())
+		return;
+
+	// Special case
+	if(q==":all")
+		q = "";
+
+	QString prompt = action->property("queryprompt").toString();
+	if(!prompt.isEmpty()) {
+		QString val = QInputDialog::getText(this, tr("Query"), prompt);
+		if(val.isEmpty())
+			return;
+		q = q.arg(val);
+	}
+
+	showBrowser();
+	m_browser->setQuery(q);
 }
 
 void Piqs::showNextPicture()
