@@ -6,6 +6,7 @@
 #include "picture.h"
 
 class QGraphicsScene;
+class QGraphicsItem;
 class QMenu;
 class Gallery;
 
@@ -48,6 +49,8 @@ public slots:
 
 protected slots:
 	void pictureContextMenu(const QPoint& point);
+	void rotateLeft();
+	void rotateRight();
 
 signals:
 	//! User wants to get out of this view
@@ -67,6 +70,7 @@ protected:
 	void resizeEvent(QResizeEvent *e);
 
 private:
+	void adjustSceneRect(QGraphicsItem *item);
 	void scaleToFit();
 
 	QAction *m_autofit;

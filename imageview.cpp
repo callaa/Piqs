@@ -46,6 +46,9 @@ ImageView::ImageView(Gallery *gallery, QWidget *parent) :
 	m_autofit->setShortcut(QKeySequence("Ctrl+1"));
 	m_autofit->setCheckable(true);
 	
+	QAction *rotateleft = new QAction(tr("Rotate left"), this);
+	QAction *rotateright = new QAction(tr("Rotate right"), this);
+
 	QAction *imginfo = new QAction(tr("Information..."), this);
 
 	// Connect actions
@@ -56,6 +59,9 @@ ImageView::ImageView(Gallery *gallery, QWidget *parent) :
 	connect(zoomout, SIGNAL(triggered()), this, SLOT(zoomout()));
 	connect(m_autofit, SIGNAL(triggered(bool)), this, SLOT(zoomfit(bool)));
 	connect(zoomorig, SIGNAL(triggered()), this, SLOT(zoomorig()));
+	connect(rotateleft, SIGNAL(triggered()), this, SLOT(rotateLeft()));
+	connect(rotateright, SIGNAL(triggered()), this, SLOT(rotateRight()));
+	connect(imginfo, SIGNAL(triggered()), this, SLOT(showInfo()));
 	connect(imginfo, SIGNAL(triggered()), this, SLOT(showInfo()));
 
 	// Create image context menu
@@ -64,6 +70,9 @@ ImageView::ImageView(Gallery *gallery, QWidget *parent) :
 	m_imgctxmenu->addAction(zoomout);
 	m_imgctxmenu->addAction(zoomorig);
 	m_imgctxmenu->addAction(m_autofit);
+	m_imgctxmenu->addSeparator();
+	m_imgctxmenu->addAction(rotateleft);
+	m_imgctxmenu->addAction(rotateright);
 	m_imgctxmenu->addSeparator();
 	m_imgctxmenu->addAction(next);
 	m_imgctxmenu->addAction(prev);
@@ -113,7 +122,15 @@ void ImageView::setPicture(const Picture &picture)
 	m_scene->clear();
 
 	QGraphicsPixmapItem *item = m_scene->addPixmap(QPixmap(picture.fullpath(m_gallery)));
-	m_scene->setSceneRect(item->boundingRect());
+	QRectF bounds = item->boundingRect();
+	item->setTransformOriginPoint(bounds.width()/2, bounds.height()/2);
+	item->setRotation(picture.rotation());
+	item->setPos(-bounds.width()/2,-bounds.height()/2);
+
+	m_ui->view->centerOn(0,0);
+
+	adjustSceneRect(item);
+
 	if(isAutofit())
 		scaleToFit();
 
@@ -121,6 +138,26 @@ void ImageView::setPicture(const Picture &picture)
 	m_ui->tagedit->setText(picture.tagString());
 	m_ui->tagedit->setFocus();
 	m_ui->alltags->setText(TagSet::getForPicture(m_gallery->database(), picture.id()).toString());
+}
+
+void ImageView::rotateLeft()
+{
+	QGraphicsItem *item = m_ui->view->items().at(0);
+	m_picture.setRotation(m_gallery->database(), (m_picture.rotation() - 90) % 360);
+	item->setRotation(m_picture.rotation());
+	adjustSceneRect(item);
+
+	emit changed();
+}
+
+void ImageView::rotateRight()
+{
+	QGraphicsItem *item = m_ui->view->items().at(0);
+	m_picture.setRotation(m_gallery->database(), (m_picture.rotation() + 90) % 360);
+	item->setRotation(m_picture.rotation());
+	adjustSceneRect(item);
+
+	emit changed();
 }
 
 void ImageView::saveTitle()
@@ -147,6 +184,12 @@ void ImageView::keyPressEvent(QKeyEvent *e)
 void ImageView::resizeEvent(QResizeEvent *e)
 {
 	QWidget::resizeEvent(e);
+
+	QGraphicsItem *item = 0;
+	if(m_ui->view->items().count()>0)
+		item = m_ui->view->items().at(0);
+
+	adjustSceneRect(item);
 	if(isAutofit())
 		scaleToFit();
 }
@@ -177,13 +220,29 @@ void ImageView::setAutofit(bool fit)
 }
 
 
+void ImageView::adjustSceneRect(QGraphicsItem *item)
+{
+	// Get the transformed bounding rectangle
+	QRectF truerect;
+	if(item!=0) {
+		truerect = item->mapRectToScene(item->boundingRect());
+	}
+
+	// Make sure scene rectangle is large enough
+	const qreal w = qMax(qreal(m_ui->view->viewport()->width()), truerect.width());
+	const qreal h = qMax(qreal(m_ui->view->viewport()->height()), truerect.height());
+
+	m_scene->setSceneRect(-w/2, -h/2, w, h);
+}
+
 void ImageView::scaleToFit()
 {
 	if(m_ui->view->items().count()==0)
 		return;
 
-	QSizeF is = m_ui->view->items().at(0)->boundingRect().size();
-	QSizeF vs = m_ui->view->size();
+	QGraphicsItem *item = m_ui->view->items().at(0);
+	QSizeF is = item->mapRectToScene(item->boundingRect()).size();
+	QSizeF vs = m_ui->view->viewport()->size();
 
 	qreal isa = is.height() / is.width();
 	qreal vsa = vs.height() / vs.width();

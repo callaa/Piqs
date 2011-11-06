@@ -38,9 +38,18 @@ void Picture::deleteFile(Gallery *gallery)
 
 void Picture::setHidden(Database *db, bool hidden)
 {
+	m_hidden = hidden;
 	QSqlQuery q(db->get());
-	if(!q.exec("UPDATE picture SET hidden=" + QString::number(hidden) + " WHERE picid=" + QString::number(m_id)))
+	if(!q.exec(QString("UPDATE picture SET hidden=%1 WHERE picid=%2").arg(m_hidden?1:0).arg(m_id)))
 		Database::showError("Couldn't " + QString(hidden?"hide":"show") + " picture", q);
+}
+
+void Picture::setRotation(const Database *db, int rotation)
+{
+	m_rotation = rotation;
+	QSqlQuery q(db->get());
+	if(!q.exec(QString("UPDATE picture SET rotation=%1 WHERE picid=%2").arg(m_rotation).arg(m_id)))
+		Database::showError("Couldn't change rotation", q);
 }
 
 void Picture::saveTitle(const Database *db, const QString &newtitle)

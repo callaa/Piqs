@@ -42,6 +42,9 @@ public:
 	//! Hide or show the picture
 	void setHidden(Database *db, bool hidden);
 
+	//! Change the image rotation
+	void setRotation(const Database *db, int rotation);
+
 	//! Delete this file from the database and the file system
 	void deleteFile(Gallery *gallery);
 
@@ -50,7 +53,6 @@ public:
 
 	//! Change picture title string and save changes to the database.
 	void saveTitle(const Database *db, const QString& newtitle);
-
 private:
 	int m_id;
 	QString m_relativename;

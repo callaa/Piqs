@@ -217,7 +217,6 @@ void Slideshow::jumpSlide(int skip)
 
 	m_timertext->hide();
 
-	qDebug() << "m_sele" << m_selection.count();
 	qDebug() << "next slide" << m_pos << "of" << count;
 
 	QRectF view = m_scene->sceneRect();
@@ -228,15 +227,22 @@ void Slideshow::jumpSlide(int skip)
 	else
 		realpos = m_pos;
 
-	QGraphicsPixmapItem *newpic = new QGraphicsPixmapItem(m_model->pictureAt(realpos)->fullpath(m_gallery));
-
-	qreal scale = calcScale(newpic->boundingRect().size(), view.size());
-	newpic->setScale(scale);
-
+	const Picture *pic = m_model->pictureAt(realpos);
+	QGraphicsPixmapItem *newpic = new QGraphicsPixmapItem(pic->fullpath(m_gallery));
 	QRectF bounds = newpic->boundingRect();
-	newpic->setPos(-bounds.width()/2.0*scale, -bounds.height()/2.0*scale);
+
+	newpic->setTransformOriginPoint(bounds.width()/2, bounds.height()/2);
+
+	newpic->setPos(-bounds.width()/2.0, -bounds.height()/2.0);
+	newpic->setRotation(pic->rotation());
+
+	// Scale image to fit screen, taking the rotation in account
+	QRectF truebounds = newpic->mapRectToScene(bounds);
+	qreal scale = calcScale(truebounds.size(), view.size());
+	newpic->setScale(scale);
 
 	delete m_picture;
 	m_picture = newpic;
 	m_scene->addItem(m_picture);
 }
+
