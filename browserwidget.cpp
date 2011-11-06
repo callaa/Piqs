@@ -71,7 +71,7 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 
 	mainlayout->addWidget(m_searchbox);
 
-	connect(m_view, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(openPicture(QModelIndex)));
+	connect(m_view, SIGNAL(activated(QModelIndex)), this, SLOT(openPicture(QModelIndex)));
 	connect(m_searchbox, SIGNAL(returnPressed()), this, SLOT(updateQuery()));
 }
 
