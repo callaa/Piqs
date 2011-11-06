@@ -19,7 +19,7 @@ class ThumbnailModel : public QAbstractListModel
     Q_OBJECT
 public:
 	//! Special query modes
-	enum SpecialQuery { QUERY_ALL, QUERY_UNTAGGED, QUERY_NEW, QUERY_HIDDEN, QUERY_MISSING, QUERY_DUPLICATE };
+	enum SpecialQuery { QUERY_ALL, QUERY_UNTAGGED, QUERY_NEW, QUERY_HIDDEN, QUERY_MISSING, QUERY_DUPLICATE, QUERY_FILENAME, QUERY_TITLE, QUERY_HASH };
 
 	ThumbnailModel(const Gallery *gallery, QObject *parent = 0);
 
@@ -46,9 +46,10 @@ public:
 	//! Remove the picture at index from the cache
 	void uncache(int index, bool removed=false);
 
-	//! Set the query string and filter the view
-	void setQuery(SpecialQuery query);
+	//! Set a special (non-tag based) query and filter the view
+	void setQuery(SpecialQuery query, const QString& param=QString());
 
+	//! Set the query string and filter the view
 	void setQuery(const TagQuery& query);
 
 signals:

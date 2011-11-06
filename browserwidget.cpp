@@ -171,6 +171,16 @@ void BrowserWidget::setQuery(const QString& query)
 	updateQuery();
 }
 
+// Extract the part after ( in a string.
+// The ending ) is not required.
+static QString getParam(const QString& query) {
+	int open = query.indexOf('(') + 1;
+	int end = query.length();
+	if(query.at(query.length()-1)==')')
+		--end;
+	return query.mid(open, end-open).trimmed();
+}
+
 void BrowserWidget::updateQuery()
 {
 	QString search = m_searchbox->text().trimmed().toLower();
@@ -192,6 +202,12 @@ void BrowserWidget::updateQuery()
 			m_model->setQuery(ThumbnailModel::QUERY_MISSING);
 		else if(search == ":duplicate")
 			m_model->setQuery(ThumbnailModel::QUERY_DUPLICATE);
+		else if(search.startsWith(":file(") || search.startsWith(":filename("))
+			m_model->setQuery(ThumbnailModel::QUERY_FILENAME, getParam(search));
+		else if(search.startsWith(":title("))
+			m_model->setQuery(ThumbnailModel::QUERY_TITLE, getParam(search));
+		else if(search.startsWith(":hash("))
+			m_model->setQuery(ThumbnailModel::QUERY_HASH, getParam(search));
 		else
 			ok = false;
 	} else {

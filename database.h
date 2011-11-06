@@ -26,6 +26,9 @@ public:
 	//! Get the name of the database connection
 	const QString& name() const { return m_dbname; }
 
+	//! Escape text for use in SQL queries
+	QString esc(const QString& text) const;
+
 	Tags *tags() { return m_tags; }
 
 	const Tags *tags() const { return m_tags; }

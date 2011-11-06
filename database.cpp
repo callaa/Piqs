@@ -1,6 +1,8 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSqlField>
+#include <QSqlDriver>
 #include <QDir>
 #include <QDebug>
 #include <QVariant>
@@ -92,6 +94,14 @@ Database::Database(const QDir& metadir, QObject *parent) :
 
 Database::~Database()
 {
+}
+
+QString Database::esc(const QString& text) const
+{
+	QSqlField f("");
+	f.setType(QVariant::String);
+	f.setValue(text);
+	return m_db.driver()->formatValue(f);
 }
 
 void Database::showError(const QString& message, const QSqlQuery &query)

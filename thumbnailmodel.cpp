@@ -13,7 +13,7 @@ ThumbnailModel::ThumbnailModel(const Gallery *gallery, QObject *parent) :
 {
 }
 
-void ThumbnailModel::setQuery(SpecialQuery query)
+void ThumbnailModel::setQuery(SpecialQuery query, const QString &param)
 {
 	QString sql;
 	switch(query) {
@@ -35,6 +35,15 @@ void ThumbnailModel::setQuery(SpecialQuery query)
 	case QUERY_DUPLICATE:
 		sql = "SELECT * FROM picture JOIN duplicate USING (picid) ORDER BY picid ASC";
 		break;
+	case QUERY_FILENAME:
+		sql = "SELECT * FROM picture WHERE filename GLOB " + m_gallery->database()->esc("*" + param + "*") + " ORDER BY picid ASC";
+		break;
+	case QUERY_TITLE:
+		sql = "SELECT * FROM picture WHERE title LIKE " + m_gallery->database()->esc("%" + param + "%") + " ORDER BY picid ASC";
+		break;
+	case QUERY_HASH:
+		sql = "SELECT * FROM picture WHERE hash LIKE " + m_gallery->database()->esc(param + "%") + " ORDER BY picid ASC";
+		break;
 	default:
 		qFatal("Unhandled query mode");
 		return;
@@ -45,10 +54,12 @@ void ThumbnailModel::setQuery(SpecialQuery query)
 	m_count = -1;
 	m_cache.clear();
 
+	// Drop old query view
 	QSqlQuery q(m_gallery->database()->get());
 	if(!q.exec("DROP VIEW IF EXISTS t_picview"))
 		Database::showError("Couldn't drop old t_picview", q);
 
+	// Create new query view visible to this connection only
 	if(!q.exec("CREATE TEMP VIEW t_picview AS " + sql))
 		Database::showError("Couldn't create new t_picview", q);
 
