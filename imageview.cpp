@@ -131,9 +131,6 @@ void ImageView::setPicture(const Picture &picture)
 
 	adjustSceneRect(item);
 
-	if(isAutofit())
-		scaleToFit();
-
 	m_ui->titleedit->setText(picture.title());
 	m_ui->tagedit->setText(picture.tagString());
 	m_ui->tagedit->setFocus();
@@ -145,6 +142,7 @@ void ImageView::rotateLeft()
 	QGraphicsItem *item = m_ui->view->items().at(0);
 	m_picture.setRotation(m_gallery->database(), (m_picture.rotation() - 90) % 360);
 	item->setRotation(m_picture.rotation());
+
 	adjustSceneRect(item);
 
 	emit changed();
@@ -190,8 +188,6 @@ void ImageView::resizeEvent(QResizeEvent *e)
 		item = m_ui->view->items().at(0);
 
 	adjustSceneRect(item);
-	if(isAutofit())
-		scaleToFit();
 }
 
 void ImageView::zoomin()
@@ -233,6 +229,9 @@ void ImageView::adjustSceneRect(QGraphicsItem *item)
 	const qreal h = qMax(qreal(m_ui->view->viewport()->height()), truerect.height());
 
 	m_scene->setSceneRect(-w/2, -h/2, w, h);
+
+	if(isAutofit())
+		scaleToFit();
 }
 
 void ImageView::scaleToFit()
@@ -241,7 +240,7 @@ void ImageView::scaleToFit()
 		return;
 
 	QGraphicsItem *item = m_ui->view->items().at(0);
-	QSizeF is = item->mapRectToScene(item->boundingRect()).size();
+	QRectF is = item->mapRectToScene(item->boundingRect());
 	QSizeF vs = m_ui->view->viewport()->size();
 
 	qreal isa = is.height() / is.width();
