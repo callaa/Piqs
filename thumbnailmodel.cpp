@@ -1,12 +1,13 @@
 #include <QDir>
 #include <QDebug>
 #include <QSqlQuery>
+#include <QMimeData>
+#include <QUrl>
 
 #include "thumbnailmodel.h"
 #include "iconcache.h"
 #include "gallery.h"
 #include "tagquery.h"
-#include "imagemimedata.h"
 
 ThumbnailModel::ThumbnailModel(const Gallery *gallery, QObject *parent) :
 	QAbstractListModel(parent), m_gallery(gallery), m_count(-1), m_cache(1000)
@@ -183,14 +184,17 @@ Qt::ItemFlags ThumbnailModel::flags(const QModelIndex& index) const
 
 QMimeData *ThumbnailModel::mimeData(const QModelIndexList &indexes) const
 {
-	QStringList imgs;
+	QList<QUrl> imgs;
 	foreach (const QModelIndex &index, indexes) {
 		if (index.isValid()) {
-			imgs << pictureAt(index.row())->fullpath(m_gallery);
+			imgs << QUrl::fromLocalFile(pictureAt(index.row())->fullpath(m_gallery));
 		}
 	}
-	if(!imgs.isEmpty())
-		return new ImageMimeData(imgs);
+	if(!imgs.isEmpty()) {
+		QMimeData *mime = new QMimeData();
+		mime->setUrls(imgs);
+		return mime;
+	}
 	return 0;
 }
 
