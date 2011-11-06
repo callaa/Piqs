@@ -64,6 +64,13 @@ Piqs::Piqs(const QString& root, QWidget *parent)
 	slidemenu->addSeparator();
 	slidemenu->addAction(m_act_slideshowopts);
 
+	QMenu *helpmenu = menuBar()->addMenu(tr("&Help"));
+	QAction *about = helpmenu->addAction(tr("About..."));
+	QAction *aboutqt = helpmenu->addAction(tr("About Qt..."));
+
+	connect(about, SIGNAL(triggered()), this, SLOT(showAboutBox()));
+	connect(aboutqt, SIGNAL(triggered()), QApplication::instance(), SLOT(aboutQt()));
+
 	// Create main gallery object
 	m_gallery = new Gallery(QDir(root), this);
 
@@ -111,6 +118,16 @@ Piqs::Piqs(const QString& root, QWidget *parent)
 Piqs::~Piqs()
 {
 
+}
+
+void Piqs::showAboutBox()
+{
+	QMessageBox::about(this, "Piqs",
+					   "Piqs 0.1.0\n"
+					   "A tagging image browser\n\n"
+					   "Copyright 2011 Calle Laakkonen <calle@luolamies.org>\n"
+					   "Piqs is distributed under the GNU General Public License Version 3"
+					   );
 }
 
 void Piqs::showOpenDialog()

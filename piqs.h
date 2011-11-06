@@ -35,8 +35,12 @@ public slots:
 	//! Switch back to browser mode
 	void showBrowser();
 
-	//! Rescan gallery directories for new files
-	void rescan();
+	//! Start a slideshow
+	void startSlideshow();
+
+protected slots:
+	void queryMenuTriggered(QAction *action);
+	void showAboutBox();
 
 	//! Show the tag rules dialog
 	void showTagrules();
@@ -44,17 +48,14 @@ public slots:
 	//! Show the tag list dialog
 	void showTaglist();
 
-	//! Start a slideshow
-	void startSlideshow();
+	//! Rescan gallery directories for new files
+	void rescan();
 
 	//! Show slideshow options dialog
 	void showSlideshowOptions();
 
 	//! Show dialog for opening a new main window instance
 	void showOpenDialog();
-
-protected slots:
-	void queryMenuTriggered(QAction *action);
 
 protected:
 	void closeEvent(QCloseEvent *e);

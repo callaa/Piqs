@@ -9,7 +9,6 @@ QT       += core gui sql
 TARGET = piqs
 TEMPLATE = app
 
-
 SOURCES += main.cpp\
         piqs.cpp \
     thumbnailmodel.cpp \
@@ -64,3 +63,6 @@ FORMS += \
     slideshowoptions.ui \
     imageinfodialog.ui \
     taglistdialog.ui
+
+OTHER_FILES += \
+    README.md
