@@ -130,12 +130,16 @@ void RescanThread::run() {
   */
 bool RescanThread::periodElapsed()
 {
+#if QT_VERSION >= 0x040700
 	qint64 time = QDateTime::currentMSecsSinceEpoch();
 	if(time - 1000 > m_time) {
 		m_time = time;
 		return true;
 	}
 	return false;
+#else
+	return true;
+#endif
 }
 
 void RescanThread::rescan(const QStringList& filefilter, const QString& prefix, const QDir& root, QSqlQuery& insertquery, QSqlQuery& updatequery)
