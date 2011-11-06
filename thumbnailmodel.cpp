@@ -25,7 +25,7 @@ void ThumbnailModel::setQuery(SpecialQuery query, const QString &param)
 		sql = "SELECT * FROM picture WHERE hidden=0 AND tags=\"\" ORDER BY picid DESC";
 		break;
 	case QUERY_NEW:
-		sql = "SELECT * FROM picture WHERE hidden=0 ORDER BY picid DESC LIMIT 100";
+		sql = QString("SELECT * FROM picture WHERE hidden=0 AND picid>%1 ORDER BY picid DESC").arg(m_gallery->database()->getSetting("lastnewid").toInt());
 		break;
 	case QUERY_HIDDEN:
 		sql = "SELECT * FROM picture WHERE hidden=1 ORDER BY picid ASC";

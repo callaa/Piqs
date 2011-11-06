@@ -43,6 +43,15 @@ void RescanThread::run() {
 		}
 
 		QSqlQuery q(db);
+
+		// Remember the latest ID before scanning for new pictures
+		int latest = 0;
+		q.exec("SELECT MAX(picid) FROM picture");
+		if(q.next())
+			latest = q.value(0).toInt();
+
+		q.exec(QString("INSERT OR REPLACE INTO option (optkey, optvalue) VALUES ('lastnewid', %1)").arg(latest));
+
 		// Mark all existing pictures as "not found". The pictures that haven't been removed from
 		// disk will be marked back as found as we scan the file system.
 		q.exec("UPDATE picture SET found=0");
