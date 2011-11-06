@@ -272,6 +272,10 @@ void Piqs::showPreviousPicture()
 
 void Piqs::startSlideshow()
 {
+	const int totalcount = m_browser->getThumbnailModel()->rowCount(QModelIndex());
+	if(totalcount==0)
+		return;
+
 	QVector<int> selection;
 	if(m_act_slideselected->isChecked())
 		selection = m_browser->getSelection();
@@ -279,8 +283,8 @@ void Piqs::startSlideshow()
 	if(m_act_slideshuffle->isChecked()) {
 		// If selection is too short, select all
 		if(selection.count() <= 1) {
-			selection = QVector<int>(m_browser->getThumbnailModel()->rowCount(QModelIndex()));
-			for(int i=0;i<selection.count();++i)
+			selection = QVector<int>(totalcount);
+			for(int i=0;i<totalcount;++i)
 				selection[i] = i;
 		}
 
