@@ -81,14 +81,17 @@ Slideshow::Slideshow(Gallery *gallery, ThumbnailModel *model, QVector<int> selec
 	addShadowEffect(m_timertext);
 
 	m_timertext->hide();
-	m_scene->addItem(m_timertext  );
+	m_scene->addItem(m_timertext);
+
+	m_scalefill = gallery->database()->getSetting("slideshow.scale").toString() == "fill";
+	m_upscale = gallery->database()->getSetting("slideshow.upscale").toBool();
 }
 
 Slideshow::~Slideshow()
 {
 }
 
-void Slideshow::addShadowEffect(QGraphicsItem *item)
+void Slideshow::addShadowEffect(QGraphicsItem *item) const
 {
 	QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect();
 
@@ -204,14 +207,20 @@ void Slideshow::togglePause()
 	m_paused = !m_paused;
 }
 
-static qreal calcScale(const QSizeF& picture, const QSizeF& screen) {
+qreal Slideshow::calcScale(const QSizeF& picture, const QSizeF& screen) const {
 	qreal pa = picture.height() / picture.width();
 	qreal sa = screen.height() / screen.width();
 
-	if(pa > sa)
-		return screen.height() / picture.height();
+	qreal scale;
+	if(m_scalefill ^ (pa > sa))
+		scale = screen.height() / picture.height();
 	else
-		return screen.width() / picture.width();
+		scale = screen.width() / picture.width();
+
+	if(!m_upscale && scale > 1)
+		scale = 1;
+
+	return scale;
 }
 
 void Slideshow::prevSlide()

@@ -32,6 +32,17 @@ SlideshowOptions::SlideshowOptions(const Database *database, QWidget *parent) :
 		duration = 10.0;
 	m_ui->slideduration->setValue(duration);
 
+	QString scaletype = database->getSetting("slideshow.scale").toString();
+	if(scaletype.isEmpty())
+		scaletype = "fit";
+
+	if(scaletype=="fit")
+		m_ui->scalefit->setChecked(true);
+	else
+		m_ui->scalefill->setChecked(true);
+
+	m_ui->scaleupscale->setChecked(database->getSetting("slideshow.upscale").toBool());
+
 	connect(this, SIGNAL(accepted()), this, SLOT(saveChanges()));
 }
 
@@ -43,4 +54,11 @@ SlideshowOptions::~SlideshowOptions()
 void SlideshowOptions::saveChanges()
 {
 	m_database->saveSetting("slideshow.delay", m_ui->slideduration->value());
+	QString type;
+	if(m_ui->scalefit->isChecked())
+		type = "fit";
+	else
+		type = "fill";
+	m_database->saveSetting("slideshow.scale", type);
+	m_database->saveSetting("slideshow.upscale", m_ui->scaleupscale->isChecked());
 }

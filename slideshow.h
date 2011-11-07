@@ -53,7 +53,8 @@ protected:
 
 private:
 	void setTimerText();
-	void addShadowEffect(QGraphicsItem *item);
+	void addShadowEffect(QGraphicsItem *item) const;
+	qreal calcScale(const QSizeF& picture, const QSizeF& screen) const;
 
 	Gallery *m_gallery;
 	ThumbnailModel *m_model;
@@ -65,6 +66,9 @@ private:
 	QGraphicsTextItem *m_timertext;
 	int m_pos;
 	bool m_paused;
+
+	bool m_scalefill;
+	bool m_upscale;
 
 	QTimer *m_slidetimer;
 };
