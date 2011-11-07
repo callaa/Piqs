@@ -82,7 +82,6 @@ ImageView::ImageView(Gallery *gallery, QWidget *parent) :
 	connect(rotateleft, SIGNAL(triggered()), this, SLOT(rotateLeft()));
 	connect(rotateright, SIGNAL(triggered()), this, SLOT(rotateRight()));
 	connect(imginfo, SIGNAL(triggered()), this, SLOT(showInfo()));
-	connect(imginfo, SIGNAL(triggered()), this, SLOT(showInfo()));
 
 	connect(back, SIGNAL(triggered()), this, SIGNAL(exitView()));
 
