@@ -62,10 +62,14 @@ ImageView::ImageView(Gallery *gallery, QWidget *parent) :
 	m_autofit->setShortcut(QKeySequence("Ctrl+1"));
 	m_autofit->setCheckable(true);
 	
-	QAction *rotateleft = new QAction(tr("Rotate left"), this);
-	QAction *rotateright = new QAction(tr("Rotate right"), this);
+	QAction *rotateleft = new QAction(QIcon::fromTheme("object-rotate-left"), tr("Rotate left"), this);
+	QAction *rotateright = new QAction(QIcon::fromTheme("object-rotate-right"), tr("Rotate right"), this);
 
 	QAction *imginfo = new QAction(tr("Information..."), this);
+
+	QAction *back = new QAction("Back", this);
+	back->setShortcut(QKeySequence(Qt::Key_Escape));
+
 
 	// Connect actions
 	connect(next, SIGNAL(triggered()), this, SIGNAL(requestNext()));
@@ -80,8 +84,12 @@ ImageView::ImageView(Gallery *gallery, QWidget *parent) :
 	connect(imginfo, SIGNAL(triggered()), this, SLOT(showInfo()));
 	connect(imginfo, SIGNAL(triggered()), this, SLOT(showInfo()));
 
+	connect(back, SIGNAL(triggered()), this, SIGNAL(exitView()));
+
 	// Create image context menu
 	m_imgctxmenu = new QMenu(this);
+	m_imgctxmenu->addAction(back);
+	m_imgctxmenu->addSeparator();
 	m_imgctxmenu->addAction(zoomin);
 	m_imgctxmenu->addAction(zoomout);
 	m_imgctxmenu->addAction(zoomorig);
@@ -92,6 +100,7 @@ ImageView::ImageView(Gallery *gallery, QWidget *parent) :
 	m_imgctxmenu->addSeparator();
 	m_imgctxmenu->addAction(next);
 	m_imgctxmenu->addAction(prev);
+	m_imgctxmenu->addSeparator();
 	m_imgctxmenu->addAction(imginfo);
 
 	m_ui->view->setContextMenuPolicy(Qt::CustomContextMenu);
