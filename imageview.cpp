@@ -143,8 +143,18 @@ bool ImageView::isAutofit() const
 
 void ImageView::setPicture(const Picture &picture)
 {
+	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+
 	m_picture = picture;
 	m_scene->clear();
+
+	m_ui->titleedit->setText(picture.title());
+	m_ui->tagedit->setText(picture.tagString());
+	m_ui->tagedit->setFocus();
+	m_ui->alltags->setText(TagSet::getForPicture(m_gallery->database(), picture.id()).toString());
+
+	// Take a little breather here, because loading a large image may take a while
+	QApplication::processEvents();
 
 	QGraphicsPixmapItem *item = m_scene->addPixmap(QPixmap(picture.fullpath(m_gallery)));
 	QRectF bounds = item->boundingRect();
@@ -156,10 +166,7 @@ void ImageView::setPicture(const Picture &picture)
 
 	adjustSceneRect(item);
 
-	m_ui->titleedit->setText(picture.title());
-	m_ui->tagedit->setText(picture.tagString());
-	m_ui->tagedit->setFocus();
-	m_ui->alltags->setText(TagSet::getForPicture(m_gallery->database(), picture.id()).toString());
+	QApplication::restoreOverrideCursor();
 }
 
 void ImageView::rotateLeft()
