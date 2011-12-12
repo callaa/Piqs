@@ -30,8 +30,8 @@
 
 static const qint64 REFRESH_PERIOD = 1000;
 
-RescanThread::RescanThread(const Gallery *gallery, QObject *parent) :
-	QThread(parent), m_gallery(gallery), m_filecount(0), m_foldercount(0), m_abortflag(false), m_time(0)
+RescanThread::RescanThread(const Gallery *gallery, bool quick, QObject *parent) :
+	QThread(parent), m_gallery(gallery), m_filecount(0), m_foldercount(0), m_abortflag(false), m_time(0), m_quick(quick)
 {
 
 }
@@ -72,11 +72,17 @@ void RescanThread::run() {
 		// disk will be marked back as found as we scan the file system.
 		q.exec("UPDATE picture SET found=0");
 
+		// This query is used to insert the picture into the database.
 		q.prepare("INSERT INTO picture (filename, hidden, title, tags, rotation, found, hash) VALUES (?, 0, \"\", \"\", 0, 1, ?)");
 
 		{
+			// q2 is executed if q fails, i.e. if the file is already in the database.
+			// In quick scan mode we try this first and if it fails, insert the picture.
 			QSqlQuery q2(db);
-			q2.prepare("UPDATE picture SET found=1, hash=? WHERE filename=?");
+			if(m_quick)
+				q2.prepare("UPDATE picture SET found=1 WHERE filename=?");
+			else
+				q2.prepare("UPDATE picture SET found=1, hash=? WHERE filename=?");
 
 			// Depth first search of all subdirectories
 			rescan(filefilter, QString(), m_gallery->root(), q, q2);
@@ -187,16 +193,31 @@ void RescanThread::rescan(const QStringList& filefilter, const QString& prefix, 
 			return;
 
 		QString path = prefix + file.fileName();
-		QString hash = Util::hashFile(file.absoluteFilePath());
-		insertquery.bindValue(0, path);
-		insertquery.bindValue(1, hash);
-		if(!insertquery.exec()) {
-			// Insert failed, most likely because the file was already in the database.
-
-			updatequery.bindValue(0, hash);
-			updatequery.bindValue(1, path);
-			if(!updatequery.exec())
-				qDebug() << "Couldn't insert or update file:" << updatequery.lastError().text();
+		if(m_quick) {
+			// Quick scan: No hash recalculation.
+			// Try marking the file as found
+			updatequery.bindValue(0, path);
+			updatequery.exec();
+			if(updatequery.numRowsAffected()==0) {
+				// File not found. Calculate hash and insert
+				QString hash = Util::hashFile(file.absoluteFilePath());
+				insertquery.bindValue(0, path);
+				insertquery.bindValue(1, hash);
+				insertquery.exec();
+			}
+		} else {
+			// Normal scan: Calculate hash and try inserting
+			QString hash = Util::hashFile(file.absoluteFilePath());
+			insertquery.bindValue(0, path);
+			insertquery.bindValue(1, hash);
+			if(!insertquery.exec()) {
+				// Insert failed, most likely because the file was already in the database.
+				// Mark as found and update hash in case the file has been changed.
+				updatequery.bindValue(0, hash);
+				updatequery.bindValue(1, path);
+				if(!updatequery.exec())
+					qWarning("Couldn't insert or update file: %s\n", updatequery.lastError().text().toLocal8Bit().constData());
+			}
 		}
 
 		// Limit the file count update rate

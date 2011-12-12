@@ -28,7 +28,7 @@ class RescanThread : public QThread
 {
     Q_OBJECT
 public:
-	explicit RescanThread(const Gallery *gallery, QObject *parent = 0);
+	RescanThread(const Gallery *gallery, bool quick, QObject *parent = 0);
 
 	void run();
 
@@ -54,6 +54,7 @@ private:
 
 	bool m_abortflag;
 	qint64 m_time;
+	bool m_quick;
 
 };
 

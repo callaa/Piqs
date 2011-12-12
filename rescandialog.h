@@ -33,6 +33,8 @@ public:
 	explicit RescanDialog(const Gallery *gallery, QWidget *parent = 0);
     ~RescanDialog();
 
+	void setQuickmode(bool quickmode) { m_quickmode = quickmode; }
+
 public slots:
 	void rescan();
 	void filesDone();
@@ -44,6 +46,7 @@ signals:
 private:
 	Ui::RescanDialog *m_ui;
 	const Gallery *m_gallery;
+	bool m_quickmode;
 };
 
 #endif // RESCANDIALOG_H

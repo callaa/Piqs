@@ -54,6 +54,7 @@ Piqs::Piqs(const QString& root, QWidget *parent)
 	filemenu->addAction(m_act_open);
 	filemenu->addSeparator();
 	filemenu->addAction(m_act_rescan);
+	filemenu->addAction(m_act_quickscan);
 	filemenu->addAction(m_act_tagrules);
 	filemenu->addAction(m_act_taglist);
 	filemenu->addSeparator();
@@ -180,6 +181,14 @@ void Piqs::rescan()
 	QTimer::singleShot(0, rescan, SLOT(rescan()));
 }
 
+void Piqs::quickscan()
+{
+	RescanDialog *rescan = new RescanDialog(m_gallery, this);
+	rescan->setQuickmode(true);
+	connect(rescan, SIGNAL(rescanComplete()), m_browser, SLOT(refreshQuery()));
+	QTimer::singleShot(0, rescan, SLOT(rescan()));
+}
+
 void Piqs::showTagrules()
 {
 	TagDialog *dialog = new TagDialog(m_gallery, this);
@@ -202,6 +211,7 @@ void Piqs::initActions()
 {
 	m_act_open = makeAction(tr("&Open..."), "document-open", QKeySequence::Open);
 	m_act_rescan = makeAction(tr("Rescan"), "edit-redo");
+	m_act_quickscan = makeAction(tr("Quick scan"), "edit-redo");
 	m_act_tagrules = makeAction(tr("&Tag rules..."), "configure");
 	m_act_taglist = makeAction(tr("Tag list..."), 0);
 	m_act_exit = makeAction(tr("E&xit"), "application-exit", QKeySequence::Quit);
@@ -210,6 +220,7 @@ void Piqs::initActions()
 
 	connect(m_act_open, SIGNAL(triggered()), this, SLOT(showOpenDialog()));
 	connect(m_act_rescan, SIGNAL(triggered()), this, SLOT(rescan()));
+	connect(m_act_quickscan, SIGNAL(triggered()), this, SLOT(quickscan()));
 	connect(m_act_exit, SIGNAL(triggered()), this, SLOT(close()));
 	connect(m_act_tagrules, SIGNAL(triggered()), this, SLOT(showTagrules()));
 	connect(m_act_taglist, SIGNAL(triggered()), this, SLOT(showTaglist()));

@@ -64,8 +64,11 @@ protected slots:
 	//! Show the tag list dialog
 	void showTaglist();
 
-	//! Rescan gallery directories for new files
+	//! Rescan gallery directories new and changed files
 	void rescan();
+
+	//! Rescan gallery directories for new files
+	void quickscan();
 
 	//! Show slideshow options dialog
 	void showSlideshowOptions();
@@ -98,6 +101,7 @@ private:
 	// Actions
 	QAction *m_act_open;
 	QAction *m_act_rescan;
+	QAction *m_act_quickscan;
 	QAction *m_act_tagrules;
 	QAction *m_act_taglist;
 	QAction *m_act_exit;

@@ -25,7 +25,8 @@
 RescanDialog::RescanDialog(const Gallery *gallery, QWidget *parent) :
 	QDialog(parent),
 	m_ui(new Ui::RescanDialog),
-	m_gallery(gallery)
+	m_gallery(gallery),
+	m_quickmode(false)
 {
 	m_ui->setupUi(this);
 	m_ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
@@ -43,7 +44,7 @@ RescanDialog::~RescanDialog()
 
 void RescanDialog::rescan()
 {
-	RescanThread *thread = new RescanThread(m_gallery, this);
+	RescanThread *thread = new RescanThread(m_gallery, m_quickmode, this);
 	connect(thread, SIGNAL(statusChanged(QString)), m_ui->statuslabel, SLOT(setText(QString)));
 	connect(thread, SIGNAL(filesAdded(int)), m_ui->picturecount, SLOT(display(int)));
 	connect(thread, SIGNAL(foldersSearched(int)), m_ui->foldercount, SLOT(display(int)));
