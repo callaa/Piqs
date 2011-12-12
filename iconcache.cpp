@@ -37,7 +37,7 @@ static QString cachefilepath(const Gallery *gallery, const Picture &picture) {
 	if(picture.hash().isEmpty())
 		return QString();
 
-	return gallery->metadir().absoluteFilePath(picture.hash() + ".png");
+	return gallery->metadir().absoluteFilePath(picture.hash().left(2) + QDir::separator() + picture.hash() + ".png");
 }
 
 QPixmap IconCache::get(const Gallery *gallery, const Picture &picture)
@@ -106,9 +106,15 @@ void IconCache::cacheImage(const QString &imagefile, const QString& cachefile)
 		icon = img;
 	}
 
-	//gallery->metadir().mkpath(QFileInfo(cachefile).dir().path());
 
-	icon.save(cachefile);
+
+	if(!icon.save(cachefile)) {
+		// Save failed? Maybe directory is missing. Try again
+		QFileInfo(cachefile).dir().mkpath(".");
+		if(!icon.save(cachefile)) {
+			qWarning("Couldn't save thumbnail: %s", cachefile.toLocal8Bit().constData());
+		}
+	}
 
 	m_lock.lock();
 	m_loading.remove(cachefile);
