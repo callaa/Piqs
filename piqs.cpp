@@ -107,7 +107,7 @@ Piqs::Piqs(const QString& root, QWidget *parent)
 	this->statusBar()->addPermanentWidget(m_piccount);
 
 	// Create browser view
-	m_browser = new BrowserWidget(m_gallery);
+	m_browser = new BrowserWidget(m_gallery, this);
 
 	// Create the (single) image viewer view
 	m_viewer = new ImageView(m_gallery);

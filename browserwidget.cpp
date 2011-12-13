@@ -53,6 +53,7 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	m_view->setSelectionMode(QListView::ExtendedSelection);
 	m_view->setDragEnabled(true);
 	m_view->setDragDropMode(QListView::DragOnly);
+	m_view->setMouseTracking(true); // mouse tracking must be enabled for status tips to work
 	mainlayout->addWidget(m_view);	
 
 	m_viewctxmenu = new QMenu(this);

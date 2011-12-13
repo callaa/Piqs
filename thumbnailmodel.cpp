@@ -15,7 +15,7 @@
 // along with Piqs.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <QDir>
-#include <QDebug>
+#include <QSqlError>
 #include <QSqlQuery>
 #include <QMimeData>
 #include <QUrl>
@@ -167,7 +167,7 @@ int ThumbnailModel::rowCount(const QModelIndex &parent) const
 		if(q.next())
 			m_count = q.value(0).toInt();
 		else
-			qDebug() << "Couldn't get picture count!";
+			qWarning("Couldn't get picture count! (error: %s)", q.lastError().text().toLocal8Bit().constData());
 	}
 	return m_count;
 }
@@ -186,6 +186,8 @@ QVariant ThumbnailModel::data(const QModelIndex &index, int role) const
 			return name;
 		} else if(role==Qt::ToolTipRole)
 			return picture->tagString();
+		else if(role==Qt::StatusTipRole)
+			return picture->fileName();
 		else if(role==Qt::DecorationRole)
 			return IconCache::getInstance().get(m_gallery, *picture);
 	}

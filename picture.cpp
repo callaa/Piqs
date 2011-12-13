@@ -34,6 +34,15 @@ Picture::Picture(int id, const QString& filename, bool hidden, const QString& ti
 {
 }
 
+QString Picture::fileName() const
+{
+	int sep = m_relativename.lastIndexOf(QDir::separator());
+	if(sep<0)
+		return m_relativename;
+	else
+		return m_relativename.mid(sep+1);
+}
+
 QString Picture::fullpath(const Gallery *gallery) const
 {
 	return gallery->root().absoluteFilePath(m_relativename);

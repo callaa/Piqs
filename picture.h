@@ -38,7 +38,10 @@ public:
 	bool isHidden() const { return m_hidden; }
 
 	//! Get the filename relative to gallery root
-	QString relativeName() const { return m_relativename; }
+	const QString &relativeName() const { return m_relativename; }
+
+	//! Get the filename without the path
+	QString fileName() const;
 
 	//! Get the full path to this file
 	QString fullpath(const Gallery *gallery) const;
