@@ -39,6 +39,7 @@ BrowserWidget::BrowserWidget(Gallery *gallery, QWidget *parent) :
 	setLayout(mainlayout);
 
 	m_model = new ThumbnailModel(gallery);
+	connect(m_model, SIGNAL(pictureCountChanged(int,int)), this, SIGNAL(pictureCountChanged(int,int)));
 	m_model->setQuery(ThumbnailModel::QUERY_ALL);
 
 	m_view = new QListView();

@@ -25,6 +25,8 @@
 #include <QTimer>
 #include <QFileDialog>
 #include <QDesktopWidget>
+#include <QLabel>
+#include <QStatusBar>
 
 #include <cstdlib> // for RAND_MAX
 
@@ -61,15 +63,15 @@ Piqs::Piqs(const QString& root, QWidget *parent)
 	filemenu->addAction(m_act_exit);
 
 	QMenu *querymenu = menuBar()->addMenu(tr("&Query"));
-	querymenu->addAction(makeQueryAction(tr("&All"), ":all"));
-	querymenu->addAction(makeQueryAction(tr("&Untagged"), ":untagged"));
-	querymenu->addAction(makeQueryAction(tr("&New"), ":new"));
-	querymenu->addAction(makeQueryAction(tr("&Hidden"), ":hidden"));
-	querymenu->addAction(makeQueryAction(tr("&Missing"), ":missing"));
-	querymenu->addAction(makeQueryAction(tr("&Duplicates"), ":duplicate"));
-	querymenu->addAction(makeQueryAction(tr("&File..."), ":file(%1)", tr("Filename")));
-	querymenu->addAction(makeQueryAction(tr("&Title..."), ":title(%1)", tr("Title")));
-	querymenu->addAction(makeQueryAction(tr("Ha&sh..."), ":hash(%1)", tr("SHA-1 hash")));
+	querymenu->addAction(makeQueryAction(tr("&All"), ":all", tr("Show all visible images")));
+	querymenu->addAction(makeQueryAction(tr("&Untagged"), ":untagged", tr("Show all images with no tags")));
+	querymenu->addAction(makeQueryAction(tr("&New"), ":new", tr("Show images added during last rescan")));
+	querymenu->addAction(makeQueryAction(tr("&Hidden"), ":hidden", "Show images that have been hidden"));
+	querymenu->addAction(makeQueryAction(tr("&Missing"), ":missing", "Show images missing from the file system"));
+	querymenu->addAction(makeQueryAction(tr("&Duplicates"), ":duplicate", "Show identical images"));
+	querymenu->addAction(makeQueryAction(tr("&File..."), ":file(%1)", tr("Show images in whose file names the given string appears"), tr("Filename")));
+	querymenu->addAction(makeQueryAction(tr("&Title..."), ":title(%1)", tr("Show images in whose titles the given string appears"), tr("Title")));
+	querymenu->addAction(makeQueryAction(tr("Ha&sh..."), ":hash(%1)", tr("Show images whose SHA-1 hash starts with the given string"), tr("SHA-1 hash")));
 
 	connect(querymenu, SIGNAL(triggered(QAction*)), this, SLOT(queryMenuTriggered(QAction*)));
 
@@ -95,46 +97,60 @@ Piqs::Piqs(const QString& root, QWidget *parent)
 		QMessageBox::critical(0, tr("Error"), tr("Couldn't open gallery"));
 		this->deleteLater();
 		return;
-	} else {
-		// Set window title
-		this->setWindowTitle(QString("%1 - Piqs").arg(QDir(m_gallery->root().absolutePath()).dirName()));
-		// Create browser view
-		m_browser = new BrowserWidget(m_gallery);
-
-		// Create the (single) image viewer view
-		m_viewer = new ImageView(m_gallery);
-
-		// The view stack for switching between image browser and image viewer
-		m_viewstack = new QStackedWidget(this);
-		m_viewstack->addWidget(m_browser);
-		m_viewstack->addWidget(m_viewer);
-		setCentralWidget(m_viewstack);
-
-		connect(m_browser, SIGNAL(pictureSelected(Picture)), this, SLOT(showPicture(Picture)));
-		connect(m_viewer, SIGNAL(exitView()), this, SLOT(showBrowser()));
-		connect(m_viewer, SIGNAL(requestNext()), this, SLOT(showNextPicture()));
-		connect(m_viewer, SIGNAL(requestPrev()), this, SLOT(showPreviousPicture()));
-		connect(m_viewer, SIGNAL(changed()), m_browser, SLOT(refreshQuery()));
-
-		// Set default window size
-		QByteArray oldgeometry = m_gallery->database()->getSetting("window.geometry").toByteArray();
-		if(oldgeometry.isEmpty()) {
-				QRect screen = QApplication::desktop()->screenGeometry();
-				resize(screen.width() * 2 / 3, screen.height() * 2 / 3);
-		} else {
-			restoreGeometry(QByteArray::fromBase64(oldgeometry));
-		}
-
-		m_viewer->setAutofit(m_gallery->database()->getSetting("viewer.autofit").toBool());
-
-		if(m_gallery->totalCount()==0)
-			rescan();
 	}
+
+	// Set window title
+	this->setWindowTitle(QString("%1 - Piqs").arg(QDir(m_gallery->root().absolutePath()).dirName()));
+
+	// Create status bar widgets
+	m_piccount = new QLabel(this);
+	this->statusBar()->addPermanentWidget(m_piccount);
+
+	// Create browser view
+	m_browser = new BrowserWidget(m_gallery);
+
+	// Create the (single) image viewer view
+	m_viewer = new ImageView(m_gallery);
+
+	// The view stack for switching between image browser and image viewer
+	m_viewstack = new QStackedWidget(this);
+	m_viewstack->addWidget(m_browser);
+	m_viewstack->addWidget(m_viewer);
+	setCentralWidget(m_viewstack);
+
+	connect(m_browser, SIGNAL(pictureSelected(Picture)), this, SLOT(showPicture(Picture)));
+	connect(m_browser, SIGNAL(pictureCountChanged(int,int)), this, SLOT(setPictureCount(int,int)));
+	connect(m_viewer, SIGNAL(exitView()), this, SLOT(showBrowser()));
+	connect(m_viewer, SIGNAL(requestNext()), this, SLOT(showNextPicture()));
+	connect(m_viewer, SIGNAL(requestPrev()), this, SLOT(showPreviousPicture()));
+	connect(m_viewer, SIGNAL(changed()), m_browser, SLOT(refreshQuery()));
+
+	// Set initial query
+	m_browser->setQuery("");
+
+	// Set default window size
+	QByteArray oldgeometry = m_gallery->database()->getSetting("window.geometry").toByteArray();
+	if(oldgeometry.isEmpty()) {
+			QRect screen = QApplication::desktop()->screenGeometry();
+			resize(screen.width() * 2 / 3, screen.height() * 2 / 3);
+	} else {
+		restoreGeometry(QByteArray::fromBase64(oldgeometry));
+	}
+
+	m_viewer->setAutofit(m_gallery->database()->getSetting("viewer.autofit").toBool());
+
+	if(m_gallery->totalCount()==0)
+		rescan();
 }
 
 Piqs::~Piqs()
 {
 
+}
+
+void Piqs::setPictureCount(int shown, int total)
+{
+	m_piccount->setText(QString("%1/%2").arg(shown).arg(total));
 }
 
 void Piqs::showAboutBox()
@@ -209,12 +225,12 @@ void Piqs::showTaglist()
 
 void Piqs::initActions()
 {
-	m_act_open = makeAction(tr("&Open..."), "document-open", QKeySequence::Open);
-	m_act_rescan = makeAction(tr("Rescan"), "edit-redo");
-	m_act_quickscan = makeAction(tr("Quick scan"), "edit-redo");
-	m_act_tagrules = makeAction(tr("&Tag rules..."), "configure");
-	m_act_taglist = makeAction(tr("Tag list..."), 0);
-	m_act_exit = makeAction(tr("E&xit"), "application-exit", QKeySequence::Quit);
+	m_act_open = makeAction(tr("&Open..."), "document-open", tr("Open another gallery"), QKeySequence::Open);
+	m_act_rescan = makeAction(tr("Rescan"), "edit-redo", tr("Rescan the gallery for new and changed images"));
+	m_act_quickscan = makeAction(tr("Quick scan"), "edit-redo", tr("Quickly find new and renamed images"));
+	m_act_tagrules = makeAction(tr("&Tag rules..."), "configure", tr("Edit tag inference rules"));
+	m_act_taglist = makeAction(tr("Tag list..."), 0, tr("List of all used tags"));
+	m_act_exit = makeAction(tr("E&xit"), "application-exit", tr("Exit application"), QKeySequence::Quit);
 
 	m_act_exit->setMenuRole(QAction::QuitRole);
 
@@ -225,19 +241,19 @@ void Piqs::initActions()
 	connect(m_act_tagrules, SIGNAL(triggered()), this, SLOT(showTagrules()));
 	connect(m_act_taglist, SIGNAL(triggered()), this, SLOT(showTaglist()));
 
-	m_act_slideshow = makeAction(tr("&Start"), "media-playback-start", QKeySequence("F9"));
-	m_act_slideselected = makeAction(tr("Limit to selection"), 0);
+	m_act_slideshow = makeAction(tr("&Start"), "media-playback-start", tr("Start slideshow"), QKeySequence("F9"));
+	m_act_slideselected = makeAction(tr("Limit to selection"), 0, tr("Limit slideshow to the current selection (if more than one picture is selected)"));
 	m_act_slideselected->setCheckable(true);
 	m_act_slideselected->setChecked(true);
-	m_act_slideshuffle= makeAction(tr("Shuffle"), 0);
+	m_act_slideshuffle= makeAction(tr("Shuffle"), 0, tr("Show pictures in random order"));
 	m_act_slideshuffle->setCheckable(true);
-	m_act_slideshowopts = makeAction(tr("Options..."), "configure");
+	m_act_slideshowopts = makeAction(tr("Options..."), "configure", tr("Set slideshow options"));
 
 	connect(m_act_slideshow, SIGNAL(triggered()), this, SLOT(startSlideshow()));
 	connect(m_act_slideshowopts, SIGNAL(triggered()), this, SLOT(showSlideshowOptions()));
 }
 
-QAction *Piqs::makeAction(const QString& title, const char *icon, const QKeySequence& shortcut)
+QAction *Piqs::makeAction(const QString& title, const char *icon, const QString& statustip, const QKeySequence& shortcut)
 {
 	QIcon qicon;
 	if(icon)
@@ -245,12 +261,14 @@ QAction *Piqs::makeAction(const QString& title, const char *icon, const QKeySequ
 	QAction *act = new QAction(qicon, title, this);
 	if(shortcut.isEmpty()==false)
 		act->setShortcut(shortcut);
+	act->setStatusTip(statustip);
 	return act;
 }
 
-QAction *Piqs::makeQueryAction(const QString& title, const QString& query, const QString& prompt)
+QAction *Piqs::makeQueryAction(const QString& title, const QString& query, const QString& statustip, const QString& prompt)
 {
 	QAction *act = new QAction(title, this);
+	act->setStatusTip(statustip);
 	act->setProperty("querystring", query);
 	act->setProperty("queryprompt", prompt);
 	return act;

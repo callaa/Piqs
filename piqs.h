@@ -17,10 +17,11 @@
 #ifndef PIQS_H
 #define PIQS_H
 
-#include <QtGui/QMainWindow>
+#include <QMainWindow>
 
 class QListView;
 class QStackedWidget;
+class QLabel;
 
 class BrowserWidget;
 class ImageView;
@@ -54,6 +55,9 @@ public slots:
 	//! Start a slideshow
 	void startSlideshow();
 
+	//! Set the status bar label showing the number of pictures
+	void setPictureCount(int shown, int total);
+
 protected slots:
 	void queryMenuTriggered(QAction *action);
 	void showAboutBox();
@@ -82,9 +86,9 @@ protected:
 private:
 	void initActions();
 
-	QAction *makeAction(const QString& title, const char *icon, const QKeySequence& shortcut=QKeySequence());
+	QAction *makeAction(const QString& title, const char *icon, const QString& statustip, const QKeySequence& shortcut=QKeySequence());
 
-	QAction *makeQueryAction(const QString& title, const QString& query, const QString& prompt=QString());
+	QAction *makeQueryAction(const QString& title, const QString& query, const QString& statustip, const QString& prompt=QString());
 
 	//! Stack of view widgets
 	QStackedWidget *m_viewstack;
@@ -97,6 +101,9 @@ private:
 
 	//! The gallery
 	Gallery *m_gallery;
+
+	//! Picture count status bar label
+	QLabel *m_piccount;
 
 	// Actions
 	QAction *m_act_open;

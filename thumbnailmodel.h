@@ -69,11 +69,16 @@ public:
 	void setQuery(const TagQuery& query);
 
 signals:
+	//! Number of shown pictures has changed
+	void pictureCountChanged(int shown, int total);
 
 public slots:
 	void refreshQuery();
 
 private:
+	//! Emit the pictureCountChanged signal
+	void refreshCount();
+
 	const Gallery *m_gallery;
 
 	mutable int m_count;

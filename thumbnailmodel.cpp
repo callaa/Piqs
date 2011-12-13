@@ -81,6 +81,7 @@ void ThumbnailModel::setQuery(SpecialQuery query, const QString &param)
 		Database::showError("Couldn't create new t_picview", q);
 
 	endResetModel();
+	refreshCount();
 }
 
 void ThumbnailModel::setQuery(const TagQuery &query)
@@ -128,6 +129,7 @@ void ThumbnailModel::setQuery(const TagQuery &query)
 		Database::showError("Couldn't create new t_picview", q);
 
 	endResetModel();
+	refreshCount();
 }
 
 
@@ -139,6 +141,7 @@ void ThumbnailModel::refreshQuery()
 	m_cache.clear();
 
 	endResetModel();
+	refreshCount();
 }
 
 void ThumbnailModel::uncache(int index, bool removed)
@@ -240,4 +243,9 @@ QList<Picture> ThumbnailModel::pictures(const QModelIndexList& list)
 	for(int i=0;i<list.count();++i)
 		pictures << *pictureAt(list.at(i).row());
 	return pictures;
+}
+
+void ThumbnailModel::refreshCount()
+{
+	emit pictureCountChanged(rowCount(index(0)), m_gallery->totalCount());
 }

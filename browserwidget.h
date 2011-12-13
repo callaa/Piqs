@@ -56,6 +56,9 @@ signals:
 	//! User selected a picture for closer viewing
 	void pictureSelected(const Picture& picture);
 
+	//! Number of shown pictures has changed
+	void pictureCountChanged(int shown, int total);
+
 public slots:
 	//! Make a new query
 	void setQuery(const QString& query);

@@ -77,7 +77,7 @@ Gallery::~Gallery()
 
 int Gallery::totalCount() const
 {
-	QSqlQuery q("SELECT COUNT(*) FROM picture", m_database->get());
+	QSqlQuery q("SELECT COUNT(picid) FROM picture", m_database->get());
 	if(!q.next())
 		return -1;
 	return q.value(0).toInt();
