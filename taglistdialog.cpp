@@ -24,23 +24,30 @@
 
 TagListDialog::TagListDialog(const Database *database, QWidget *parent) :
     QDialog(parent),
-	m_ui(new Ui::TagListDialog)
+	m_ui(new Ui::TagListDialog),
+	m_database(database)
 {
 	m_ui->setupUi(this);
 
 	m_model = new QSqlQueryModel(this);
-	// Note. This query can count a tag multiple times per picture because of tagsets.
-	m_model->setQuery(QSqlQuery(
-						"SELECT tag, count(picid) as piccount FROM tag JOIN tagmap USING(tagid) GROUP BY tagid ORDER BY piccount DESC",
-						database->get()));
 
 	m_model->setHeaderData(0, Qt::Horizontal, tr("Tag"));
 	m_model->setHeaderData(1, Qt::Horizontal, tr("Occurences"));
 
 	m_ui->tableView->setModel(m_model);
 	m_ui->tableView->horizontalHeader()->setResizeMode(0, QHeaderView::Stretch);
+	m_ui->tableView->setSortingEnabled(true);
+	m_ui->tableView->horizontalHeader()->setSortIndicator(1, Qt::DescendingOrder);
+
+	m_ui->tableView->setFocus();
 
 	connect(m_ui->tableView, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(tagClicked(QModelIndex)));
+	connect(m_ui->filterbox, SIGNAL(textChanged(QString)), this, SLOT(filterChange(QString)));
+
+	// We have to sort the results ourselves, because QSqlQueryModel doesn't implement sorting.
+	connect(m_ui->tableView->horizontalHeader(), SIGNAL(sortIndicatorChanged(int,Qt::SortOrder)), this, SLOT(sortChange()));
+
+	filterChange("");
 }
 
 TagListDialog::~TagListDialog()
@@ -51,4 +58,36 @@ TagListDialog::~TagListDialog()
 void TagListDialog::tagClicked(const QModelIndex& index)
 {
 	emit query(m_model->data(m_model->index(index.row(), 0)).toString());
+}
+
+void TagListDialog::filterChange(const QString &text)
+{
+	// Get sort column
+	int sorts = m_ui->tableView->horizontalHeader()->sortIndicatorSection();
+	QString sort;
+	if(sorts==1)
+		sort = "piccount";
+	else
+		sort = "tag";
+	if(m_ui->tableView->horizontalHeader()->sortIndicatorOrder()==Qt::AscendingOrder)
+		sort += " ASC";
+	else
+		sort += " DESC";
+
+	// Perform query.
+	// Note. This query can count a tag multiple times per picture because of tagsets.
+	QSqlQuery q(m_database->get());
+	if(text.isEmpty()) {
+		q.exec("SELECT tag, count(picid) AS piccount FROM tag JOIN tagmap USING(tagid) GROUP BY tagid ORDER BY " + sort);
+	} else {
+		q.prepare("SELECT tag, count(picid) AS piccount FROM tag JOIN tagmap USING(tagid) WHERE tag LIKE ? GROUP BY tagid ORDER BY " + sort);
+		q.bindValue(0, "%" + text + "%");
+		q.exec();
+	}
+	m_model->setQuery(q);
+}
+
+void TagListDialog::sortChange()
+{
+	filterChange(m_ui->filterbox->text());
 }

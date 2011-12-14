@@ -41,10 +41,13 @@ signals:
 
 private slots:
 	void tagClicked(const QModelIndex& index);
+	void filterChange(const QString& text);
+	void sortChange();
 
 private:
 	Ui::TagListDialog *m_ui;
 	QSqlQueryModel *m_model;
+	const Database *m_database;
 };
 
 #endif // TAGLISTDIALOG_H
