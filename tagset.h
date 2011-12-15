@@ -63,6 +63,7 @@ typedef QVector<int> TagIdVector;
 class TagIdSet
 {
 public:
+	//! Construct a blank tag ID set
 	TagIdSet();
 
 	//! Construct from a tag set
@@ -72,13 +73,17 @@ public:
 	static TagIdSet getFromResults(QSqlQuery &query);
 
 	/**
-	  \brief Get the number of tag sets.
-
-	  \return tag set count
-	  */
+	 * \brief Get the number of tag sets.
+	 * \return tag set count
+	 */
 	int sets() const { return m_sets.size()-1; }
 
-	//! Get the total number of tags in the set
+	/**
+	 * \brief Get the total number of tags in the set
+	 *
+	 * Duplicate tags are counted.
+	 * \return number of tags in sets
+	 */
 	int totalCount() const;
 
 	//! Get the tags in the given set
@@ -93,11 +98,15 @@ public:
 	/**
 	  \brief Get the ID of the picture to which these tags belong to
 
-	  \return picture Id or -1 if not valid
+	  \return picture ID or -1 if not valid
 	  */
 	int pictureId() const { return m_picid; }
 
-	//! Save the tags
+	/**
+	 * \brief Save the tags
+	 * \param db the database to use
+	 * \param transaction if true, a new transaction is started and committed.
+	 */
 	void save(const Database *db, bool transaction=true);
 
 private:

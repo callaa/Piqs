@@ -94,31 +94,41 @@ void ThumbnailModel::setQuery(const TagQuery &query)
 	// Get the "shortlist" and filter it
 	QSqlQuery q(m_gallery->database()->get());
 
+	bool trivial = query.isTrivial();
 	QVector<int> shortlist;
-	q.setForwardOnly(true);
-	q.exec("SELECT picid, tagid, tagset FROM tagmap WHERE picid IN (SELECT picid FROM tagmap WHERE tagid IN (" + query.mentionedTagIds().join(",") + ") GROUP BY picid) ORDER BY picid, tagset ASC");
-	if(q.next()) {
-		while(true) {
-			TagIdSet tags = TagIdSet::getFromResults(q);
-			if(tags.pictureId()<0)
-				break;
 
-			if(query.match(tags))
-				shortlist.append(tags.pictureId());
+	// If query is non-trivial (e.g. contains tag sets,) match pictures in C++ code.
+	if(!trivial) {
+		q.setForwardOnly(true);
+		q.exec("SELECT picid, tagid, tagset FROM tagmap WHERE picid IN (SELECT picid FROM tagmap WHERE tagid IN (" + query.mentionedTagIds().join(",") + ") GROUP BY picid) ORDER BY picid, tagset ASC");
+		if(q.next()) {
+			while(true) {
+				TagIdSet tags = TagIdSet::getFromResults(q);
+				if(tags.pictureId()<0)
+					break;
+
+				if(query.match(tags))
+					shortlist.append(tags.pictureId());
+			}
 		}
 	}
 
-	// Store the filtered list
+	// Re-create temp table to hold query results
 	if(!q.exec("DROP TABLE IF EXISTS t_query"))
 		Database::showError("Couldn't drop old t_query", q);
 
 	if(!q.exec("CREATE TEMP TABLE t_query (picid INTEGER NOT NULL PRIMARY KEY)"))
 		Database::showError("Couldn't create new t_query", q);
 
-	q.prepare("INSERT INTO t_query VALUES (?)");
-	foreach(int id, shortlist) {
-		q.bindValue(0, id);
-		q.exec();
+	// Insert results
+	if(trivial) {
+		q.exec("INSERT INTO t_query " + query.toSql());
+	} else {
+		q.prepare("INSERT INTO t_query VALUES (?)");
+		foreach(int id, shortlist) {
+			q.bindValue(0, id);
+			q.exec();
+		}
 	}
 
 	// Select filtered list view

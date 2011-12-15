@@ -43,7 +43,14 @@ public:
 
 	virtual void queryInit(Tags *tags) = 0;
 
-	virtual void gatherTagIds(QSet<int>& list) const = 0;
+	virtual void gatherTagIds(QSet<int>& list, bool negate) const = 0;
+
+	/**
+	 * \brief Check if this is a trivial query
+	 * \param seenAnd and query detected
+	 * \param seenOr or query detected
+	 */
+	virtual bool isTrivial() const = 0;
 
 	//! Check if this query contains any tag set operators
 	virtual bool hasSets() const { return false; }
@@ -64,207 +71,6 @@ public:
 	virtual bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const = 0;
 };
 
-class TagQueryBinaryNode : public TagQueryNode
-{
-public:
-
-	TagQueryBinaryNode() : m_left(0), m_right(0) { }
-
-	~TagQueryBinaryNode() {
-		delete m_left;
-		delete m_right;
-	}
-
-	void init(const Tags *database)
-	{
-		if(m_left==0 || m_right==0)
-			throw ParseException("BUG: Uninitialized binary operator node");
-		m_left->init(database);
-		m_right->init(database);
-	}
-
-	void queryInit(Tags *database)
-	{
-		if(m_left==0 || m_right==0)
-			throw ParseException("BUG: Uninitialized binary operator node");
-		m_left->queryInit(database);
-		m_right->queryInit(database);
-	}
-
-	void gatherTagIds(QSet<int>& list) const {
-		m_left->gatherTagIds(list);
-		m_right->gatherTagIds(list);
-	}
-
-	void setLeft(TagQueryNode *node) {
-		m_left = node;
-	}
-
-	void setRight(TagQueryNode *node) {
-		m_right = node;
-	}
-
-	bool hasSets() const {
-		return m_left->hasSets() || m_right->hasSets();
-	}
-
-protected:
-	TagQueryNode *m_left, *m_right;
-};
-
-class TagQueryUnaryNode : public TagQueryNode
-{
-public:
-	~TagQueryUnaryNode() {
-		delete m_node;
-	}
-
-	void init(const Tags *database)
-	{
-		if(m_node==0)
-			throw ParseException("BUG: Uninitialized unary operator node");
-		m_node->init(database);
-	}
-
-	void queryInit(Tags *database)
-	{
-		if(m_node==0)
-			throw ParseException("BUG: Uninitialized unary operator node");
-		m_node->queryInit(database);
-	}
-
-	void gatherTagIds(QSet<int>& list) const {
-		m_node->gatherTagIds(list);
-	}
-
-	void setNode(TagQueryNode *node) { m_node = node; }
-
-	bool hasSets() const {
-		return m_node->hasSets();
-	}
-
-protected:
-	TagQueryNode *m_node;
-};
-
-
-class TagQueryAndNode : public TagQueryBinaryNode
-{
-public:
-	void debug(QDebug &dbg) const
-	{
-		dbg << "(";
-		m_left->debug(dbg);
-		dbg << "AND";
-		m_right->debug(dbg);
-		dbg << ")";
-	}
-
-	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
-	{
-		return m_left->match(tags, limitset, limitmask) && m_right->match(tags, limitset, limitmask);
-	}
-
-	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
-	{
-		return m_left->match(tags, limitset, results) && m_right->match(tags, limitset, results);
-	}
-};
-
-class TagQueryOrNode : public TagQueryBinaryNode
-{
-public:
-	int precedence() const { return 1; }
-
-	void debug(QDebug &dbg) const
-	{
-		dbg << "(";
-		m_left->debug(dbg);
-		dbg << "OR";
-		m_right->debug(dbg);
-		dbg << ")";
-
-	}
-
-	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
-	{
-		return m_left->match(tags, limitset, limitmask) || m_right->match(tags, limitset, limitmask);
-	}
-
-	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
-	{
-		return m_left->match(tags, limitset, results) || m_right->match(tags, limitset, results);
-	}
-};
-
-class TagQueryNotNode : public TagQueryUnaryNode
-{
-public:
-	int precedence() const { return 2; }
-
-	void debug(QDebug &dbg) const
-	{
-		dbg << "NOT (";
-		m_node->debug(dbg);
-		dbg << ")";
-	}
-
-	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
-	{
-		return !m_node->match(tags, limitset, limitmask);
-	}
-
-	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
-	{
-		return !m_node->match(tags, limitset, results);
-	}
-};
-
-class TagQuerySetNode : public TagQueryUnaryNode
-{
-public:
-	void debug(QDebug &dbg) const
-	{
-		dbg << "[";
-		m_node->debug(dbg);
-		dbg << "]";
-	}
-
-	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
-	{
-		Q_UNUSED(limitset); // Although the grammar allows nested tag sets, other limitations prevent their use.
-
-		for(int i=1;i<=tags.sets();++i) {
-			if(! (limitmask & (1<<i))) {
-				if(m_node->match(tags, i, limitmask)) {
-					limitmask |= (1<<i);
-					return  true;
-				}
-			}
-		}
-		return false;
-	}
-
-	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
-	{
-		Q_UNUSED(limitset); // Although the grammar allows nested tag sets, other limitations prevent their use.
-		for(int i=1;i<=tags.sets();++i) {
-			if(!results.tagsets.contains(i)) {
-				bool m = m_node->match(tags, i, results);
-				if(m) {
-					results.tagsets.append(i);
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	bool hasSets() const {
-		return true;
-	}
-};
-
 // Tag node
 class TagQueryLeafNode : public TagQueryNode
 {
@@ -281,6 +87,11 @@ public:
 			*/
 	}
 
+	bool isTrivial() const
+	{
+		return true;
+	}
+
 	void queryInit(Tags *tags)
 	{
 		// Tags starting with ":" have special meaning
@@ -290,8 +101,8 @@ public:
 			m_id = tags->getOrCreate(m_value);
 	}
 
-	void gatherTagIds(QSet<int>& list) const {
-		if(m_id>0)
+	void gatherTagIds(QSet<int>& list, bool negate) const {
+		if(m_id>0 && !negate)
 			list.insert(m_id);
 	}
 
@@ -334,6 +145,237 @@ public:
 private:
 	QString m_value;
 	int m_id;
+};
+
+class TagQueryBinaryNode : public TagQueryNode
+{
+public:
+
+	TagQueryBinaryNode() : m_left(0), m_right(0) { }
+
+	~TagQueryBinaryNode() {
+		delete m_left;
+		delete m_right;
+	}
+
+	void init(const Tags *database)
+	{
+		if(m_left==0 || m_right==0)
+			throw ParseException("BUG: Uninitialized binary operator node");
+		m_left->init(database);
+		m_right->init(database);
+	}
+
+	void queryInit(Tags *database)
+	{
+		if(m_left==0 || m_right==0)
+			throw ParseException("BUG: Uninitialized binary operator node");
+		m_left->queryInit(database);
+		m_right->queryInit(database);
+	}
+
+	void gatherTagIds(QSet<int>& list, bool negate) const {
+		m_left->gatherTagIds(list, negate);
+		m_right->gatherTagIds(list, negate);
+	}
+
+	void setLeft(TagQueryNode *node) {
+		m_left = node;
+	}
+
+	void setRight(TagQueryNode *node) {
+		m_right = node;
+	}
+
+	bool hasSets() const {
+		return m_left->hasSets() || m_right->hasSets();
+	}
+
+protected:
+	TagQueryNode *m_left, *m_right;
+};
+
+class TagQueryUnaryNode : public TagQueryNode
+{
+public:
+	~TagQueryUnaryNode() {
+		delete m_node;
+	}
+
+	void init(const Tags *database)
+	{
+		if(m_node==0)
+			throw ParseException("BUG: Uninitialized unary operator node");
+		m_node->init(database);
+	}
+
+	void queryInit(Tags *database)
+	{
+		if(m_node==0)
+			throw ParseException("BUG: Uninitialized unary operator node");
+		m_node->queryInit(database);
+	}
+
+	void gatherTagIds(QSet<int>& list, bool negate) const {
+		m_node->gatherTagIds(list, negate);
+	}
+
+	void setNode(TagQueryNode *node) { m_node = node; }
+
+	bool hasSets() const {
+		return m_node->hasSets();
+	}
+
+protected:
+	TagQueryNode *m_node;
+};
+
+
+class TagQueryAndNode : public TagQueryBinaryNode
+{
+public:
+	void debug(QDebug &dbg) const
+	{
+		dbg << "(";
+		m_left->debug(dbg);
+		dbg << "AND";
+		m_right->debug(dbg);
+		dbg << ")";
+	}
+
+	bool isTrivial() const
+	{
+		// AND queries are difficult, because a single tag can appear multiple
+		// times in an image (in different sets of course.)
+		// This makes it hard to match in pure SQL.
+		return false;
+	}
+
+	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
+	{
+		return m_left->match(tags, limitset, limitmask) && m_right->match(tags, limitset, limitmask);
+	}
+
+	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
+	{
+		return m_left->match(tags, limitset, results) && m_right->match(tags, limitset, results);
+	}
+};
+
+class TagQueryOrNode : public TagQueryBinaryNode
+{
+public:
+	int precedence() const { return 1; }
+
+	void debug(QDebug &dbg) const
+	{
+		dbg << "(";
+		m_left->debug(dbg);
+		dbg << "OR";
+		m_right->debug(dbg);
+		dbg << ")";
+
+	}
+
+	bool isTrivial() const
+	{
+		return m_left->isTrivial() && m_right->isTrivial();
+	}
+
+	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
+	{
+		return m_left->match(tags, limitset, limitmask) || m_right->match(tags, limitset, limitmask);
+	}
+
+	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
+	{
+		return m_left->match(tags, limitset, results) || m_right->match(tags, limitset, results);
+	}
+};
+
+class TagQueryNotNode : public TagQueryUnaryNode
+{
+public:
+	int precedence() const { return 2; }
+
+	void debug(QDebug &dbg) const
+	{
+		dbg << "NOT (";
+		m_node->debug(dbg);
+		dbg << ")";
+	}
+
+	bool isTrivial() const
+	{
+		// Negating individual tags is easy
+		if(dynamic_cast<TagQueryLeafNode*>(m_node))
+			return true;
+		return false;
+	}
+
+	void gatherTagIds(QSet<int>& list, bool negate) const {
+		m_node->gatherTagIds(list, !negate);
+	}
+
+	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
+	{
+		return !m_node->match(tags, limitset, limitmask);
+	}
+
+	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
+	{
+		return !m_node->match(tags, limitset, results);
+	}
+};
+
+class TagQuerySetNode : public TagQueryUnaryNode
+{
+public:
+	void debug(QDebug &dbg) const
+	{
+		dbg << "[";
+		m_node->debug(dbg);
+		dbg << "]";
+	}
+
+	bool isTrivial() const
+	{
+		return false;
+	}
+
+	bool match(const TagIdSet &tags, int limitset, long &limitmask) const
+	{
+		Q_UNUSED(limitset); // Although the grammar allows nested tag sets, other limitations prevent their use.
+
+		for(int i=1;i<=tags.sets();++i) {
+			if(! (limitmask & (1<<i))) {
+				if(m_node->match(tags, i, limitmask)) {
+					limitmask |= (1<<i);
+					return  true;
+				}
+			}
+		}
+		return false;
+	}
+
+	bool match(const TagIdSet &tags, int limitset, TagMatchResults &results) const
+	{
+		Q_UNUSED(limitset); // Although the grammar allows nested tag sets, other limitations prevent their use.
+		for(int i=1;i<=tags.sets();++i) {
+			if(!results.tagsets.contains(i)) {
+				bool m = m_node->match(tags, i, results);
+				if(m) {
+					results.tagsets.append(i);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	bool hasSets() const {
+		return true;
+	}
 };
 
 class TagQueryParser {
@@ -534,16 +576,82 @@ void TagQuery::queryInit(Tags *tags)
 	}
 }
 
+static QStringList set2list(const QSet<int> &set)
+{
+	QStringList list;
+	foreach(int i, set)
+		list.append(QString::number(i));
+	return list;
+}
+
+static QString gettag(const QSet<int> &set)
+{
+	Q_ASSERT(set.count()==1);
+	return QString::number(*set.constBegin());
+}
+
 QStringList TagQuery::mentionedTagIds() const
 {
-	QStringList idlist;
 	if(m_p->node!=0) {
 		QSet<int> ids;
-		m_p->node->gatherTagIds(ids);
-		foreach(int id, ids)
-			idlist.append(QString::number(id));
+		m_p->node->gatherTagIds(ids, false);
+		return set2list(ids);
 	}
-	return idlist;
+	return QStringList();
+}
+
+bool TagQuery::isTrivial() const
+{
+	if(m_p->node==0)
+		return true;
+	return m_p->node->isTrivial();
+}
+
+QString TagQuery::toSql() const
+{
+	if(m_p->node!=0) {
+		// Gather tag IDs
+		QSet<int> tags, nottags;
+		m_p->node->gatherTagIds(tags, false);
+		m_p->node->gatherTagIds(nottags, true);
+
+		// Check if we are in "OR" mode. If this is a trivial query, the ! is
+		// not used for groups, therefore if the query contains a | operator,
+		// the root node must be an OR node.
+		bool ormode = dynamic_cast<TagQueryOrNode*>(m_p->node.data()) != 0;
+
+		if(ormode) {
+			if(nottags.count()>1) {
+				// Special case sanity check: ¬A ∪ ¬B = U
+				return "SELECT picid FROM picture";
+			}
+
+			QString sql = "SELECT picid FROM tagmap WHERE";
+			if(tags.count()>0) {
+				sql = sql + " tagid IN (" + set2list(tags).join(",") + ")";
+			}
+			if(nottags.count()==1) {
+				if(tags.count()>0)
+					sql = sql + " OR picid NOT IN (SELECT picid FROM tagmap WHERE tagid=" + gettag(nottags) + ")";
+				else
+					sql = sql + " tagid!=" + gettag(nottags);
+			}
+			sql += " GROUP BY picid";
+			return sql;
+		} else {
+			// If not in OR mode, we can match only one tag at a time
+			Q_ASSERT(tags.count() + nottags.count() == 1);
+			QString sql;
+			if(tags.count()>0)
+				sql = "SELECT picid FROM tagmap WHERE tagid=" + gettag(tags) + " GROUP BY picid";
+			else
+				sql = "SELECT picid FROM tagmap WHERE tagid!=" + gettag(nottags) + " GROUP BY picid";
+			return sql;
+		}
+	} else {
+		// Empty query matches everything
+		return "SELECT picid FROM picture";
+	}
 }
 
 /**
