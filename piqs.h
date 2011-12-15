@@ -105,6 +105,9 @@ private:
 	//! Picture count status bar label
 	QLabel *m_piccount;
 
+	//! Current permanent message on status bar (can be hidden by temporary messages)
+	QLabel *m_message;
+
 	// Actions
 	QAction *m_act_open;
 	QAction *m_act_rescan;

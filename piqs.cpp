@@ -105,6 +105,8 @@ Piqs::Piqs(const QString& root, QWidget *parent)
 	// Create status bar widgets
 	m_piccount = new QLabel(this);
 	this->statusBar()->addPermanentWidget(m_piccount);
+	m_message = new QLabel(this);
+	this->statusBar()->addWidget(m_message);
 
 	// Create browser view
 	m_browser = new BrowserWidget(m_gallery, this);
@@ -285,11 +287,13 @@ void Piqs::showPicture(const Picture &picture)
 {
 	m_viewstack->setCurrentIndex(1);
 	m_viewer->setPicture(picture);
+	m_message->setText(picture.fileName());
 }
 
 void Piqs::showBrowser()
 {
 	m_viewstack->setCurrentIndex(0);
+	m_message->setText(QString());
 }
 
 void Piqs::queryMenuTriggered(QAction *action)
